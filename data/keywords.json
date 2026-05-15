@@ -1,0 +1,56 @@
+{
+  "country": "Israel",
+  "locations": [
+    "Israel",
+    "Tel Aviv, Israel",
+    "Ramat Gan, Israel",
+    "Petah Tikva, Israel",
+    "Herzliya, Israel",
+    "Ra'anana, Israel",
+    "Haifa, Israel",
+    "Remote, Israel"
+  ],
+  "queries": [
+    "QA Automation Israel junior",
+    "Junior QA Israel",
+    "Software QA Israel junior",
+    "Manual QA Israel junior",
+    "QA ללא ניסיון",
+    "בודק תוכנה ללא ניסיון",
+    "בדיקות תוכנה ג'וניור",
+    "Fraud Analyst Israel junior",
+    "Risk Analyst Israel junior",
+    "Junior Risk Analyst Israel",
+    "Information Specialist Israel junior",
+    "מיישם מערכות מידע junior",
+    "מידען משרה ישראל"
+  ],
+  "siteQueries": [
+    "site:comeet.com QA Israel junior",
+    "site:comeet.com בודק תוכנה",
+    "site:greenhouse.io QA Automation Israel junior",
+    "site:jobs.lever.co QA Automation Israel junior",
+    "site:workdayjobs.com Risk Analyst Israel",
+    "site:ashbyhq.com Fraud Analyst Israel",
+    "site:teamtailor.com QA Israel junior"
+  ],
+  "exclude": [
+    "senior",
+    "lead",
+    "manager",
+    "team lead",
+    "director",
+    "principal",
+    "ראש צוות",
+    "מנהל",
+    "בכיר",
+    "5+ years",
+    "7+ years",
+    "sales",
+    "customer support",
+    "customer success",
+    "שירות לקוחות",
+    "מוקד",
+    "טלפוני"
+  ]
+}

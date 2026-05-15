@@ -1,0 +1,79 @@
+{
+  "name": "Avner",
+  "targetRoles": [
+    "QA Automation",
+    "Junior QA",
+    "Software QA",
+    "Manual QA",
+    "Automation Engineer",
+    "Fraud Analyst",
+    "Risk Analyst",
+    "Information Specialist",
+    "מיישם מערכות מידע",
+    "בודק תוכנה",
+    "אנליסט הונאות",
+    "אנליסט סיכונים"
+  ],
+  "skills": [
+    "JavaScript",
+    "React",
+    "Node.js",
+    "Python basics",
+    "SQL basics",
+    "GitHub Actions",
+    "Automation",
+    "API testing",
+    "Debugging",
+    "Technical documentation",
+    "Firebase",
+    "Playwright basics"
+  ],
+  "positiveKeywords": [
+    "junior",
+    "entry level",
+    "no experience",
+    "training",
+    "qa",
+    "automation",
+    "api",
+    "python",
+    "sql",
+    "javascript",
+    "manual testing",
+    "selenium",
+    "playwright",
+    "ללא ניסיון",
+    "ג'וניור",
+    "הכשרה",
+    "בדיקות",
+    "אוטומציה",
+    "מערכות מידע"
+  ],
+  "avoid": [
+    "sales",
+    "customer service",
+    "heavy phone work",
+    "senior roles",
+    "team lead roles",
+    "management roles"
+  ],
+  "preferences": {
+    "country": "Israel",
+    "remote": true,
+    "hybrid": true,
+    "entryOrJuniorFriendly": true,
+    "preferredLocations": [
+      "Israel",
+      "Tel Aviv",
+      "Ramat Gan",
+      "Petah Tikva",
+      "Herzliya",
+      "Ra'anana",
+      "Rishon LeZion",
+      "Haifa",
+      "Yokneam",
+      "Remote",
+      "Hybrid"
+    ]
+  }
+}

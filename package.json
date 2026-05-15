@@ -1,0 +1,17 @@
+{
+  "name": "israel-job-finder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Israel-first job finder: finds jobs via SerpApi Google Jobs, scores them, saves them, and lets you manage applications manually.",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "find-jobs": "npm --prefix server run find-jobs",
+    "build": "npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

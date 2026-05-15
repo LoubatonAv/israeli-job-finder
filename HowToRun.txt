@@ -1,0 +1,24 @@
+כדי להריץ:
+
+npm run install:all
+cp .env.example server/.env
+
+ואז לערוך את:
+
+server/.env
+
+ולשים:
+
+SERPAPI_API_KEY=your_real_key
+PORT=4000
+SERPAPI_PAGES_PER_QUERY=1
+
+אחר כך:
+
+npm run dev
+
+ולפתוח:
+
+http://localhost:5173
+
+אפשר גם לבדוק בלי API key דרך הכפתור Load mock jobs בדשבורד.

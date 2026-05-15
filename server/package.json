@@ -1,0 +1,18 @@
+{
+  "name": "israel-job-finder-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "find-jobs": "node src/cliFindJobs.js",
+    "mock-jobs": "node src/loadMockJobs.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "israel-job-finder": "file:.."
+  }
+}
