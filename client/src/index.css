@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
+  margin: 0;
   background: #f8fafc;
+}
+
+button,
+select,
+input {
+  font-family: inherit;
+}
+
+::selection {
+  background: #dbeafe;
 }

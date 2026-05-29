@@ -1,28 +1,72 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BriefcaseBusiness, RefreshCw, Search, Sparkles } from 'lucide-react';
-import JobCard from './components/JobCard.jsx';
-import { apiDelete, apiGet, apiPatch, apiPost } from './lib/api.js';
+import { useEffect, useMemo, useState } from "react";
+import {
+  BriefcaseBusiness,
+  RefreshCw,
+  Search,
+  Sparkles,
+  SlidersHorizontal,
+} from "lucide-react";
+import JobCard from "./components/JobCard.jsx";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./lib/api.js";
 
-function Stat({ label, value }) {
+function getScoreBand(score = 0) {
+  if (score >= 80) return "excellent";
+  if (score >= 60) return "good";
+  if (score >= 40) return "medium";
+  return "low";
+}
+
+function Stat({ label, value, tone = "slate" }) {
+  const tones = {
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-700",
+    orange: "border-orange-200 bg-orange-50 text-orange-700",
+    red: "border-red-200 bg-red-50 text-red-700",
+    slate: "border-slate-200 bg-white text-slate-900",
+  };
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-950">{value}</p>
+    <div className={`rounded-2xl border px-4 py-3 shadow-sm ${tones[tone]}`}>
+      <p className="text-xs font-medium opacity-80">{label}</p>
+      <p className="mt-1 text-2xl font-bold">{value}</p>
     </div>
+  );
+}
+
+function SelectField({ label, value, onChange, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-slate-500">
+        {label}
+      </span>
+
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+      >
+        {children}
+      </select>
+    </label>
   );
 }
 
 export default function App() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [scoreFilter, setScoreFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("score-desc");
 
   async function loadJobs() {
-    setError('');
-    const data = await apiGet('/api/jobs');
+    setError("");
+    const data = await apiGet("/api/jobs");
     setJobs(data);
   }
 
@@ -30,14 +74,30 @@ export default function App() {
     loadJobs().catch((err) => setError(err.message));
   }, []);
 
+  useEffect(() => {
+    if (!loading) return;
+
+    const intervalId = setInterval(() => {
+      loadJobs().catch((err) => setError(err.message));
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [loading]);
+
   async function runFinder(useMock = false) {
     setLoading(true);
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
+
     try {
-      const result = await apiPost(useMock ? '/api/jobs/mock' : '/api/jobs/find');
+      const result = await apiPost(
+        useMock ? "/api/jobs/mock" : "/api/jobs/find",
+      );
+
       setJobs(result.jobs || []);
-      setMessage(`Scanned ${result.scanned}. Added ${result.newJobs} new jobs. Total saved: ${result.totalJobs}.`);
+      setMessage(
+        `Scanned ${result.scanned}. Added ${result.newJobs} new jobs. Total saved: ${result.totalJobs}.`,
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,102 +115,348 @@ export default function App() {
     setJobs((current) => current.filter((job) => job.id !== id));
   }
 
-  const filteredJobs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return jobs.filter((job) => {
-      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
-      const text = [job.title, job.company, job.location, job.description].join(' ').toLowerCase();
-      const matchesSearch = !q || text.includes(q);
-      return matchesStatus && matchesSearch;
-    });
-  }, [jobs, search, statusFilter]);
+  const filterOptions = useMemo(() => {
+    const sources = [
+      ...new Set(jobs.map((job) => job.source || job.via).filter(Boolean)),
+    ].sort();
 
-  const stats = useMemo(() => {
-    return {
-      total: jobs.length,
-      apply: jobs.filter((job) => job.recommendation === 'apply').length,
-      applied: jobs.filter((job) => job.status === 'applied').length,
-      interviews: jobs.filter((job) => job.status === 'interview').length
-    };
+    const locations = [
+      ...new Set(jobs.map((job) => job.location).filter(Boolean)),
+    ].sort();
+
+    return { sources, locations };
   }, [jobs]);
 
+  const filteredJobs = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return jobs
+      .filter((job) => {
+        const score = job.fitScore || 0;
+        const band = getScoreBand(score);
+
+        const matchesStatus =
+          statusFilter === "all" || job.status === statusFilter;
+
+        const matchesScore = scoreFilter === "all" || band === scoreFilter;
+
+        const matchesSource =
+          sourceFilter === "all" ||
+          job.source === sourceFilter ||
+          job.via === sourceFilter;
+
+        const matchesLocation =
+          locationFilter === "all" || job.location === locationFilter;
+
+        const text = [
+          job.title,
+          job.company,
+          job.location,
+          job.description,
+          job.source,
+          job.via,
+          ...(job.reasons || []),
+          ...(job.warnings || []),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return (
+          matchesStatus &&
+          matchesScore &&
+          matchesSource &&
+          matchesLocation &&
+          (!q || text.includes(q))
+        );
+      })
+      .sort((a, b) => {
+        if (sortBy === "newest") {
+          return new Date(b.foundAt || 0) - new Date(a.foundAt || 0);
+        }
+
+        if (sortBy === "oldest") {
+          return new Date(a.foundAt || 0) - new Date(b.foundAt || 0);
+        }
+
+        if (sortBy === "title") {
+          return String(a.title || "").localeCompare(String(b.title || ""));
+        }
+
+        if (sortBy === "score-asc") {
+          return (a.fitScore || 0) - (b.fitScore || 0);
+        }
+
+        const scoreDiff = (b.fitScore || 0) - (a.fitScore || 0);
+        if (scoreDiff) return scoreDiff;
+
+        return new Date(b.foundAt || 0) - new Date(a.foundAt || 0);
+      });
+  }, [
+    jobs,
+    search,
+    statusFilter,
+    scoreFilter,
+    sourceFilter,
+    locationFilter,
+    sortBy,
+  ]);
+
+  const stats = useMemo(
+    () => ({
+      total: jobs.length,
+      excellent: jobs.filter((job) => (job.fitScore || 0) >= 80).length,
+      good: jobs.filter(
+        (job) => (job.fitScore || 0) >= 60 && (job.fitScore || 0) < 80,
+      ).length,
+      medium: jobs.filter(
+        (job) => (job.fitScore || 0) >= 40 && (job.fitScore || 0) < 60,
+      ).length,
+      low: jobs.filter((job) => (job.fitScore || 0) < 40).length,
+    }),
+    [jobs],
+  );
+
+  function resetFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setScoreFilter("all");
+    setSourceFilter("all");
+    setLocationFilter("all");
+    setSortBy("score-desc");
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        <header className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm md:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900">
+      <div className="mx-auto max-w-[980px]">
+        <header className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm text-slate-200">
-                <BriefcaseBusiness size={16} /> Israel-first Job Finder
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                <BriefcaseBusiness size={14} /> Israeli Job Finder
               </div>
-              <h1 className="text-3xl font-bold md:text-4xl">Find, score, and track jobs</h1>
-              <p className="mt-2 max-w-2xl text-slate-300">
-                Searches Israel-focused QA, automation, fraud, risk, and information-specialist jobs. Nothing is submitted automatically.
+
+              <h1 className="text-3xl font-black tracking-tight text-slate-950">
+                משרות שמדורגות לפי התאמה
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                סינון שקט וממוקד ל־QA, Data, Risk, Fraud, Document Control
+                ותפקידים טכניים רגועים. שום דבר לא נשלח אוטומטית.
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => runFinder(false)}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 font-semibold text-slate-950 hover:bg-slate-100 disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
               >
-                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-                Find Jobs
+                {loading ? (
+                  <RefreshCw className="animate-spin" size={16} />
+                ) : (
+                  <Search size={16} />
+                )}
+                הרץ חיפוש
               </button>
+
               <button
                 onClick={() => runFinder(true)}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 px-5 py-3 font-semibold text-white hover:bg-white/10 disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
-                <Sparkles size={18} /> Load mock jobs
+                <Sparkles size={16} /> Load mock
               </button>
             </div>
           </div>
         </header>
 
-        {message ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">{message}</div> : null}
-        {error ? <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">{error}</div> : null}
+        {message && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {message}
+          </div>
+        )}
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <Stat label="Total saved" value={stats.total} />
-          <Stat label="Recommended apply" value={stats.apply} />
-          <Stat label="Applied" value={stats.applied} />
-          <Stat label="Interviews" value={stats.interviews} />
+        {error && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
+
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Stat label="סה״כ משרות" value={stats.total} />
+          <Stat
+            label="80+ התאמה גבוהה"
+            value={stats.excellent}
+            tone="emerald"
+          />
+          <Stat label="60-79 התאמה טובה" value={stats.good} tone="amber" />
+          <Stat label="40-59 בינוני" value={stats.medium} tone="orange" />
+          <Stat label="<40 לא מתאים" value={stats.low} tone="red" />
         </section>
 
-        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search title, company, location, description..."
-              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
-            />
-            <select
+        <section className="sticky top-3 z-10 mt-5 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+            <SlidersHorizontal size={16} />
+            סינון ומיון
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[1.4fr_repeat(5,minmax(140px,1fr))_auto]">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-slate-500">
+                חיפוש חופשי
+              </span>
+
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="חפש לפי תפקיד, חברה, עיר, טכנולוגיה..."
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                />
+              </div>
+            </label>
+
+            <SelectField
+              label="סטטוס"
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-400"
+              onChange={setStatusFilter}
             >
-              <option value="all">All statuses</option>
+              <option value="all">כל הסטטוסים</option>
               <option value="found">found</option>
               <option value="saved">saved</option>
               <option value="applied">applied</option>
               <option value="interview">interview</option>
               <option value="rejected">rejected</option>
               <option value="skipped">skipped</option>
-            </select>
+            </SelectField>
+
+            <SelectField
+              label="ציון"
+              value={scoreFilter}
+              onChange={setScoreFilter}
+            >
+              <option value="all">כל הציונים</option>
+              <option value="excellent">80+ גבוה</option>
+              <option value="good">60-79 טוב</option>
+              <option value="medium">40-59 בינוני</option>
+              <option value="low">מתחת ל־40</option>
+            </SelectField>
+
+            <SelectField
+              label="מקור"
+              value={sourceFilter}
+              onChange={setSourceFilter}
+            >
+              <option value="all">כל המקורות</option>
+              {filterOptions.sources.map((source) => (
+                <option key={source} value={source}>
+                  {source}
+                </option>
+              ))}
+            </SelectField>
+
+            <SelectField
+              label="מיקום"
+              value={locationFilter}
+              onChange={setLocationFilter}
+            >
+              <option value="all">כל המיקומים</option>
+              {filterOptions.locations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </SelectField>
+
+            <SelectField label="מיון" value={sortBy} onChange={setSortBy}>
+              <option value="score-desc">ציון גבוה לנמוך</option>
+              <option value="score-asc">ציון נמוך לגבוה</option>
+              <option value="newest">הכי חדש</option>
+              <option value="oldest">הכי ישן</option>
+              <option value="title">לפי שם משרה</option>
+            </SelectField>
+
+            <div className="flex items-end">
+              <button
+                onClick={resetFilters}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              >
+                נקה
+              </button>
+            </div>
           </div>
         </section>
 
-        <section className="mt-6 space-y-4">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">
+            מציג{" "}
+            <span className="font-bold text-slate-900">
+              {filteredJobs.length}
+            </span>{" "}
+            מתוך <span className="font-bold text-slate-900">{jobs.length}</span>{" "}
+            משרות
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                const savedJobs = jobs.filter((job) => job.status === "saved");
+
+                savedJobs.forEach((job, index) => {
+                  if (!job.url) return;
+
+                  setTimeout(() => {
+                    window.open(job.url, "_blank");
+                  }, index * 400);
+                });
+              }}
+              className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700"
+            >
+              Open saved jobs
+            </button>
+
+            <button
+              onClick={() => {
+                const applyJobs = jobs.filter(
+                  (job) => job.recommendation === "apply",
+                );
+
+                applyJobs.forEach((job, index) => {
+                  if (!job.url) return;
+
+                  setTimeout(() => {
+                    window.open(job.url, "_blank");
+                  }, index * 400);
+                });
+              }}
+              className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
+            >
+              Open apply jobs
+            </button>
+          </div>
+        </div>
+
+        <section className="mt-4 space-y-4">
           {filteredJobs.length ? (
             filteredJobs.map((job) => (
-              <JobCard key={job.id} job={job} onStatusChange={updateStatus} onDelete={deleteJob} />
+              <JobCard
+                key={job.id}
+                job={job}
+                onStatusChange={updateStatus}
+                onDelete={deleteJob}
+              />
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
-              No jobs yet. Click <strong>Load mock jobs</strong> to test, or add a SerpApi key and click <strong>Find Jobs</strong>.
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
+              <p className="text-lg font-bold text-slate-800">אין תוצאות</p>
+              <p className="mt-1 text-sm text-slate-500">
+                נסה לנקות פילטרים או להריץ חיפוש חדש.
+              </p>
             </div>
           )}
         </section>
