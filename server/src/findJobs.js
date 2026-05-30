@@ -1,4 +1,9 @@
-import { JOBS_FILE, KEYWORDS_FILE, PROFILE_FILE } from "./paths.js";
+import {
+  FEEDBACK_FILE,
+  JOBS_FILE,
+  KEYWORDS_FILE,
+  PROFILE_FILE,
+} from "./paths.js";
 import { readJson, writeJson } from "./fileStore.js";
 import { createJobId, getBestApplyLink, uniqueById } from "./utils.js";
 import { scoreJob } from "./scoring.js";
@@ -8,6 +13,7 @@ import { searchDrushim } from "./drushimCrawler.js";
 import { searchJobMaster } from "./jobmasterCrawler.js";
 import { searchAllJobs } from "./alljobsCrawler.js";
 import { searchMatrix } from "./matrixCrawler.js";
+import { extractLocation } from "./locationExtractor.js";
 
 const scanStats = {};
 
@@ -77,6 +83,22 @@ function sortJobs(jobs) {
   });
 }
 
+function finalizeNormalizedJob(job) {
+  const extractedLocation = extractLocation(job);
+
+  const finalizedJob = {
+    ...job,
+    location: extractedLocation.locationDisplay,
+    locationKey: extractedLocation.locationKey,
+    locationConfidence: extractedLocation.locationConfidence,
+  };
+
+  return {
+    id: createJobId(finalizedJob),
+    ...finalizedJob,
+  };
+}
+
 function normalizeSerpJob(result, sourceQuery) {
   const job = {
     title: result.title || "Untitled job",
@@ -92,10 +114,7 @@ function normalizeSerpJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizeDrushimJob(result, sourceQuery) {
@@ -113,10 +132,7 @@ function normalizeDrushimJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizeAllJobsJob(result, sourceQuery) {
@@ -134,10 +150,7 @@ function normalizeAllJobsJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizeJobMasterJob(result, sourceQuery) {
@@ -155,10 +168,7 @@ function normalizeJobMasterJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizeMatrixJob(result, sourceQuery) {
@@ -176,10 +186,7 @@ function normalizeMatrixJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizeOrganicJob(result, sourceQuery) {
@@ -197,10 +204,7 @@ function normalizeOrganicJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function normalizePlaywrightJob(result, sourceQuery) {
@@ -218,10 +222,7 @@ function normalizePlaywrightJob(result, sourceQuery) {
     status: "found",
   };
 
-  return {
-    id: createJobId(job),
-    ...job,
-  };
+  return finalizeNormalizedJob(job);
 }
 
 function extractCompanyFromLink(link = "") {
@@ -277,10 +278,11 @@ async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
 export async function findJobs({ useMock = false } = {}) {
   resetScanStats();
 
-  const [profile, keywords, existingJobs] = await Promise.all([
+  const [profile, keywords, existingJobs, feedback] = await Promise.all([
     readJson(PROFILE_FILE, {}),
     readJson(KEYWORDS_FILE, {}),
     readJson(JOBS_FILE, []),
+    readJson(FEEDBACK_FILE, []),
   ]);
 
   let incomingJobs = [];
@@ -328,7 +330,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("Playwright", { scored: scoredPartialJobs.length });
@@ -363,7 +365,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("Drushim", { scored: scoredPartialJobs.length });
@@ -398,7 +400,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("JobMaster", { scored: scoredPartialJobs.length });
@@ -433,7 +435,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("AllJobs", { scored: scoredPartialJobs.length });
@@ -468,7 +470,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("Matrix", { scored: scoredPartialJobs.length });
@@ -509,7 +511,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const scoredPartialJobs = normalizedJobs.map((job) => ({
             ...job,
-            ...scoreJob(job, profile, keywords),
+            ...scoreJob(job, profile, keywords, feedback),
           }));
 
           addProviderStats("SerpApi", { scored: scoredPartialJobs.length });
@@ -530,7 +532,7 @@ export async function findJobs({ useMock = false } = {}) {
 
   const scoredIncoming = incomingJobs.map((job) => ({
     ...job,
-    ...scoreJob(job, profile, keywords),
+    ...scoreJob(job, profile, keywords, feedback),
   }));
 
   const existingById = new Map(existingJobs.map((job) => [job.id, job]));

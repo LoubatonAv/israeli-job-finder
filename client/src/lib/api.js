@@ -27,8 +27,15 @@ export async function apiPatch(path, body = {}) {
   return data;
 }
 
-export async function apiDelete(path) {
-  const response = await fetch(path, { method: 'DELETE' });
+export async function apiDelete(path, body = undefined) {
+  const options = { method: 'DELETE' };
+
+  if (body !== undefined) {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(path, options);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Request failed');
   return data;

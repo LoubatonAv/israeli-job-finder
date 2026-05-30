@@ -1,4 +1,5 @@
 import { normalizeText } from "./utils.js";
+import { getLearningAdjustment } from "./learning.js";
 
 const HARD_EXCLUDE_REGEX = [
   /(?:^|\s)שירות(?:\s+לקוחות)?(?:\s|$|–|-)/i,
@@ -39,7 +40,7 @@ function findMatches(text, words = []) {
   return words.filter((word) => normalized.includes(normalizeText(word)));
 }
 
-export function scoreJob(job, profile, keywords) {
+export function scoreJob(job, profile, keywords, feedback = []) {
   const text = [job.title, job.company, job.location, job.description, job.via]
     .filter(Boolean)
     .join(" ");
@@ -146,6 +147,11 @@ export function scoreJob(job, profile, keywords) {
     score -= 8;
     warnings.push("No direct application link was found.");
   }
+
+  const learning = getLearningAdjustment(job, feedback);
+  score += learning.adjustment;
+  reasons.push(...learning.reasons);
+  warnings.push(...learning.warnings);
 
   score = Math.max(0, Math.min(100, Math.round(score)));
 

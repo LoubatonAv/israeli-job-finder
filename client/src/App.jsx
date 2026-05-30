@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
+  PartyPopper,
   RefreshCw,
   Search,
   Sparkles,
@@ -110,8 +111,8 @@ export default function App() {
     setJobs((current) => current.map((job) => (job.id === id ? updated : job)));
   }
 
-  async function deleteJob(id) {
-    await apiDelete(`/api/jobs/${id}`);
+  async function deleteJob(id, feedback = {}) {
+    await apiDelete(`/api/jobs/${id}`, feedback);
     setJobs((current) => current.filter((job) => job.id !== id));
   }
 
@@ -201,9 +202,22 @@ export default function App() {
     sortBy,
   ]);
 
-  const stats = useMemo(
-    () => ({
+  const stats = useMemo(() => {
+    const today = new Date().toLocaleDateString("en-CA");
+    const isToday = (value) => {
+      if (!value) return false;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return false;
+      return date.toLocaleDateString("en-CA") === today;
+    };
+
+    return {
       total: jobs.length,
+      saved: jobs.filter((job) => job.status === "saved").length,
+      applied: jobs.filter((job) => job.status === "applied").length,
+      appliedToday: jobs.filter(
+        (job) => job.status === "applied" && isToday(job.updatedAt || job.foundAt),
+      ).length,
       excellent: jobs.filter((job) => (job.fitScore || 0) >= 80).length,
       good: jobs.filter(
         (job) => (job.fitScore || 0) >= 60 && (job.fitScore || 0) < 80,
@@ -212,9 +226,12 @@ export default function App() {
         (job) => (job.fitScore || 0) >= 40 && (job.fitScore || 0) < 60,
       ).length,
       low: jobs.filter((job) => (job.fitScore || 0) < 40).length,
-    }),
-    [jobs],
-  );
+    };
+  }, [jobs]);
+
+  const dailyGoal = 5;
+  const dailyProgress = Math.min(100, Math.round((stats.appliedToday / dailyGoal) * 100));
+  const reachedDailyGoal = stats.appliedToday >= dailyGoal;
 
   function resetFilters() {
     setSearch("");
@@ -284,14 +301,38 @@ export default function App() {
 
         <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Stat label="סה״כ משרות" value={stats.total} />
-          <Stat
-            label="80+ התאמה גבוהה"
-            value={stats.excellent}
-            tone="emerald"
-          />
-          <Stat label="60-79 התאמה טובה" value={stats.good} tone="amber" />
-          <Stat label="40-59 בינוני" value={stats.medium} tone="orange" />
+          <Stat label="שמורות" value={stats.saved} tone="amber" />
+          <Stat label="הוגשו סה״כ" value={stats.applied} tone="emerald" />
+          <Stat label="הוגשו היום" value={`${stats.appliedToday}/${dailyGoal}`} tone="emerald" />
           <Stat label="<40 לא מתאים" value={stats.low} tone="red" />
+        </section>
+
+        <section className={`mt-4 overflow-hidden rounded-3xl border p-4 shadow-sm ${
+          reachedDailyGoal
+            ? "border-emerald-200 bg-emerald-50"
+            : "border-slate-200 bg-white"
+        }`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-black text-slate-900">יעד יומי: {dailyGoal} הגשות איכותיות</p>
+              <p className="mt-1 text-xs text-slate-500">
+                עדיף 5 הגשות ממוקדות ביום מאשר 20 זריקות עיוורות. שמירה עוזרת לבנות רשימת בדיקה, אבל היעד נמדד לפי applied.
+              </p>
+            </div>
+
+            {reachedDailyGoal && (
+              <div className="inline-flex animate-bounce items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-black text-emerald-700 shadow-sm">
+                <PartyPopper size={16} /> יעד הושלם
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+              style={{ width: `${dailyProgress}%` }}
+            />
+          </div>
         </section>
 
         <section className="sticky top-3 z-10 mt-5 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
@@ -330,9 +371,6 @@ export default function App() {
               <option value="found">found</option>
               <option value="saved">saved</option>
               <option value="applied">applied</option>
-              <option value="interview">interview</option>
-              <option value="rejected">rejected</option>
-              <option value="skipped">skipped</option>
             </SelectField>
 
             <SelectField
