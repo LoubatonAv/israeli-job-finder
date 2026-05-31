@@ -177,6 +177,9 @@ function isUsableJob(job = {}) {
   const url = String(job.url || job.link || "");
   const locationKey = String(job.locationKey || "");
   const locationText = String(job.location || "");
+  const recommendation = String(job.recommendation || "");
+  const status = String(job.status || "");
+  const roleFamily = String(job.roleFamily || "");
 
   const allowedMainLocationKeys = new Set([
     "haifa",
@@ -217,23 +220,6 @@ function isUsableJob(job = {}) {
     "לוד",
   ]);
 
-  const allowedMainLocationKeys = new Set([
-    "haifa",
-    "krayot",
-    "yokneam",
-    "north",
-    "remote",
-    "nesher",
-    "tirat_carmel",
-    "nahariya",
-    "acre",
-    "karmiel",
-  ]);
-
-  if (!allowedMainLocationKeys.has(locationKey)) {
-    return false;
-  }
-
   if (
     blockedLocationKeys.has(locationKey) ||
     blockedLocationText.test(locationText) ||
@@ -241,9 +227,6 @@ function isUsableJob(job = {}) {
   ) {
     return false;
   }
-  const recommendation = String(job.recommendation || "");
-  const status = String(job.status || "");
-  const roleFamily = String(job.roleFamily || "");
 
   if (status === "skipped") return false;
   if (recommendation === "skip") return false;
@@ -252,12 +235,9 @@ function isUsableJob(job = {}) {
   if (job.isRelevantRole === false) return false;
   if (hasJunkBusinessModel(job)) return false;
 
-  // AllJobs is much noisier than Drushim/Matrix/JobMaster.
-  // It needs stricter rules so it does not flood the main list.
   if (source === "AllJobs") {
     if (!/JobID=\d+/i.test(url)) return false;
 
-    // Block parser-broken locations like "אור יהודהסוג משרה:"
     if (
       /סוג_?משרה|היקף_?משרה|דרישות/i.test(locationKey) ||
       /סוג\s*משרה|היקף\s*משרה|דרישות/i.test(locationText)
@@ -267,44 +247,8 @@ function isUsableJob(job = {}) {
 
     if (hasBadSeniorityForMainList(job)) return false;
 
-    const weakLocations = new Set([
-      "center",
-      "tel_aviv",
-      "ramat_gan",
-      "hod_hasharon",
-      "petah_tikva",
-      "raanana",
-      "rishon_lezion",
-      "holon",
-      "lod",
-      "לוד",
-      "ראש_העין",
-    ]);
-
-    const goodLocations = new Set([
-      "haifa",
-      "krayot",
-      "yokneam",
-      "north",
-      "remote",
-      "nesher",
-      "tirat_carmel",
-      "nahariya",
-      "acre",
-      "karmiel",
-    ]);
-
-    // Unknown location from AllJobs is suspicious.
-    // Keep only if the score is strong enough.
-    if (!locationKey && score < 78) return false;
-
-    // Center / Tel Aviv / Ramat Gan / etc. are less relevant for you.
-    // Keep only if the match is strong.
-    if (weakLocations.has(locationKey) && score < 75) return false;
-
     if (roleFamily === "qa" || roleFamily === "automation") {
-      if (goodLocations.has(locationKey)) return score >= 50;
-      return score >= 60;
+      return score >= 50;
     }
 
     if (roleFamily === "information_systems") {
@@ -318,7 +262,6 @@ function isUsableJob(job = {}) {
     return false;
   }
 
-  // Cleaner providers: keep the wider recall behavior.
   if (roleFamily === "qa" || roleFamily === "automation") {
     if (hasBadSeniorityForMainList(job)) return false;
     return score >= 25;
