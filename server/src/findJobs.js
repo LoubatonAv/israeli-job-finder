@@ -1,4 +1,4 @@
-import {
+﻿import {
   FEEDBACK_FILE,
   JOBS_FILE,
   KEYWORDS_FILE,
@@ -13,9 +13,67 @@ import { searchDrushim } from "./drushimCrawler.js";
 import { searchJobMaster } from "./jobmasterCrawler.js";
 import { searchAllJobs } from "./alljobsCrawler.js";
 import { searchMatrix } from "./matrixCrawler.js";
-import { extractLocation } from "./locationExtractor.js";
+import { enrichJob } from "./enrichJob.js";
+import { shouldSkipBadJob } from "./jobGuards.js";
 
 const scanStats = {};
+
+const DEBUG_JOBS =
+  String(process.env.DEBUG_JOBS || "").toLowerCase() === "true";
+const DEBUG_DRY_RUN =
+  String(process.env.DEBUG_DRY_RUN || "").toLowerCase() === "true";
+
+const DEBUG_JOB_LIMIT = Number.parseInt(
+  process.env.DEBUG_JOB_LIMIT || "10",
+  10,
+);
+
+function limitDebugJobs(jobs) {
+  if (!DEBUG_JOBS) return jobs;
+
+  const safeLimit =
+    Number.isFinite(DEBUG_JOB_LIMIT) && DEBUG_JOB_LIMIT > 0
+      ? DEBUG_JOB_LIMIT
+      : 10;
+
+  return jobs.slice(0, safeLimit);
+}
+
+function printDebugJobPreview(jobs, label = "DEBUG JOBS") {
+  if (!DEBUG_JOBS) return;
+
+  console.log("");
+  console.log("==============================");
+  console.log(label);
+  console.log("==============================");
+
+  for (const [index, job] of jobs.entries()) {
+    console.log(
+      [
+        `#${index + 1}`,
+        job.title,
+        `company: ${job.company || "?"}`,
+        `location: ${job.location || "?"}`,
+        `locationKey: ${job.locationKey || "?"}`,
+        `role: ${job.roleFamily || "?"}/${job.roleType || "?"}`,
+        `seniority: ${job.seniority || "?"}`,
+        `score: ${job.fitScore ?? "not scored"}`,
+        `status: ${job.status || "?"}`,
+      ].join(" | "),
+    );
+  }
+
+  console.log("==============================");
+  console.log("");
+}
+
+function isUsableJob(job = {}) {
+  if (job.status === "skipped") return false;
+  if (job.recommendation === "skip") return false;
+  if ((job.fitScore ?? 0) <= 0) return false;
+
+  return true;
+}
 
 function resetScanStats() {
   for (const key of Object.keys(scanStats)) {
@@ -84,18 +142,26 @@ function sortJobs(jobs) {
 }
 
 function finalizeNormalizedJob(job) {
-  const extractedLocation = extractLocation(job);
+  const enrichedJob = enrichJob(job);
 
-  const finalizedJob = {
-    ...job,
-    location: extractedLocation.locationDisplay,
-    locationKey: extractedLocation.locationKey,
-    locationConfidence: extractedLocation.locationConfidence,
-  };
+  if (shouldSkipBadJob(enrichedJob)) {
+    return {
+      id: createJobId(enrichedJob),
+      ...enrichedJob,
+      status: "skipped",
+      fitScore: 0,
+      recommendation: "skip",
+      reasons: [],
+      warnings: [
+        ...(enrichedJob.warnings || []),
+        "Skipped: likely search/category/page dump, not a real job card.",
+      ],
+    };
+  }
 
   return {
-    id: createJobId(finalizedJob),
-    ...finalizedJob,
+    id: createJobId(enrichedJob),
+    ...enrichedJob,
   };
 }
 
@@ -266,8 +332,21 @@ function usesProvider(providers, provider) {
 }
 
 async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
+  const jobsForThisPartialRun = limitDebugJobs(
+    scoredPartialJobs.filter(isUsableJob),
+  );
+
+  printDebugJobPreview(jobsForThisPartialRun, "DEBUG PARTIAL JOB PREVIEW");
+
+  if (DEBUG_DRY_RUN) {
+    console.log(
+      `DEBUG_DRY_RUN=true — not writing partial jobs. Would save ${jobsForThisPartialRun.length} jobs from this provider batch.`,
+    );
+    return;
+  }
+
   const partialMerged = sortJobs(
-    uniqueById([...currentJobs, ...scoredPartialJobs]),
+    uniqueById([...currentJobs, ...jobsForThisPartialRun]),
   );
 
   await writeJson(JOBS_FILE, partialMerged);
@@ -322,7 +401,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizePlaywrightJob(result, query));
+            .map((result) => normalizeJobMasterJob(result, query))
+            .filter((job) => job.status !== "skipped");
 
           addProviderStats("Playwright", { normalized: normalizedJobs.length });
 
@@ -357,7 +437,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeDrushimJob(result, query));
+            .map((result) => normalizeDrushimJob(result, query))
+            .filter((job) => job.status !== "skipped");
 
           addProviderStats("Drushim", { normalized: normalizedJobs.length });
 
@@ -392,7 +473,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeJobMasterJob(result, query));
+            .map((result) => normalizeJobMasterJob(result, query))
+            .filter((job) => job.status !== "skipped");
 
           addProviderStats("JobMaster", { normalized: normalizedJobs.length });
 
@@ -413,7 +495,13 @@ export async function findJobs({ useMock = false } = {}) {
           });
         } catch (error) {
           addProviderStats("JobMaster", { errors: 1 });
+
           console.warn(`Skipped JobMaster query "${query}": ${error.message}`);
+
+          if (DEBUG_JOBS) {
+            console.warn("JobMaster debug error details:");
+            console.warn(error.stack || error);
+          }
         }
       }
 
@@ -427,8 +515,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeAllJobsJob(result, query));
-
+            .map((result) => normalizeAllJobsJob(result, query))
+            .filter((job) => job.status !== "skipped");
           addProviderStats("AllJobs", { normalized: normalizedJobs.length });
 
           incomingJobs.push(...normalizedJobs);
@@ -462,7 +550,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeMatrixJob(result, query));
+            .map((result) => normalizeMatrixJob(result, query))
+            .filter((job) => job.status !== "skipped");
 
           addProviderStats("Matrix", { normalized: normalizedJobs.length });
 
@@ -503,8 +592,8 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeOrganicJob(result, query));
-
+            .map((result) => normalizeOrganicJob(result, query))
+            .filter((job) => job.status !== "skipped");
           addProviderStats("SerpApi", { normalized: normalizedJobs.length });
 
           incomingJobs.push(...normalizedJobs);
@@ -535,10 +624,16 @@ export async function findJobs({ useMock = false } = {}) {
     ...scoreJob(job, profile, keywords, feedback),
   }));
 
+  const usableScoredIncoming = scoredIncoming.filter(isUsableJob);
+
+  const jobsForThisRun = limitDebugJobs(usableScoredIncoming);
+
+  printDebugJobPreview(jobsForThisRun, "DEBUG FINAL JOB PREVIEW");
+
   const existingById = new Map(existingJobs.map((job) => [job.id, job]));
   const newJobs = [];
 
-  for (const job of scoredIncoming) {
+  for (const job of jobsForThisRun) {
     if (!existingById.has(job.id)) {
       newJobs.push(job);
       existingById.set(job.id, job);
@@ -547,9 +642,15 @@ export async function findJobs({ useMock = false } = {}) {
 
   const merged = sortJobs(uniqueById([...existingById.values()]));
 
-  await writeJson(JOBS_FILE, merged);
+  if (DEBUG_DRY_RUN) {
+    console.log(
+      `DEBUG_DRY_RUN=true — not writing final jobs.json. Would save total: ${merged.length}`,
+    );
+  } else {
+    await writeJson(JOBS_FILE, merged);
+  }
 
-  console.log(`Scanned: ${incomingJobs.length}`);
+  console.log(`Scanned: ${jobsForThisRun.length} / ${incomingJobs.length}`);
   console.log(`New jobs: ${newJobs.length}`);
   console.log(`Total saved: ${merged.length}`);
 

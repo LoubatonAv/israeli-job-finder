@@ -87,14 +87,7 @@ function normalizeText(value = "") {
 
 export function extractLocation(job = {}) {
   const text = normalizeText(
-    [
-      job.location,
-      job.title,
-      job.company,
-      job.description,
-      job.sourceQuery,
-      job.rawText,
-    ]
+    [job.location, job.title, job.company, job.description, job.rawText]
       .filter(Boolean)
       .join(" "),
   );
