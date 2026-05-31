@@ -6,22 +6,36 @@ const HARD_EXCLUDE_REGEX = [
   /נציג(?:\/ת|י|ים|ות|י\/ות)?/i,
   /מוקד|טלפוני|שיחות/i,
   /מכירות|sales/i,
-
-  /סוכנ(?:\/ית|ית|י|ים|ות|י\/ות)?/i,
-  /תיירות|נסיעות/i,
-
-  /ביטוח|אלמנטרי|פיננס/i,
-  /רפרנט(?:\/ית|ית)?/i,
-
-  /מסעדה|מלצר|קופאי|קופה/i,
-
-  /senior|team\s*lead|manager|director|principal/i,
-  /ראש\s*צוות|מנהל|בכיר|מנוסה/i,
-  /\b[3-9]\+?\s*(years|yrs)\b/i,
-  /[3-9]\s*שנים/i,
-
-  /משמרות|לילות|סופי\s*שבוע|שבת|חגים|כוננות/i,
+  /משמרות|לילות|סופי\s*שבוע|שבת|חגים|כוננות|24\/7/i,
+  /תיירות|חופשות|נופש|סוכני(?:\/ות)?\s*תיירות/i,
+  /רווחים\s*גבוהים|הכנסה\s*גבוהה/i,
+  /פנה(?:\/י)?\s*ללא\s*קו[״"]?ח/i,
 ];
+
+const GOOD_LOCATION_KEYS = new Set([
+  "haifa",
+  "krayot",
+  "yokneam",
+  "karmiel",
+  "nahariya",
+  "acre",
+  "north",
+  "remote",
+]);
+
+const BAD_LOCATION_KEYS = new Set([
+  "tel_aviv",
+  "jerusalem",
+  "center",
+  "beer_sheva",
+  "ashdod",
+  "ashkelon",
+  "holon",
+  "rishon_lezion",
+  "netanya",
+  "petah_tikva",
+  "raanana",
+]);
 
 function findRegexMatches(text, regexList = []) {
   return regexList
@@ -29,123 +43,156 @@ function findRegexMatches(text, regexList = []) {
     .map((regex) => regex.toString());
 }
 
-function countMatches(text, words = []) {
-  const normalized = normalizeText(text);
-  return words.filter((word) => normalized.includes(normalizeText(word)))
-    .length;
-}
-
 function findMatches(text, words = []) {
   const normalized = normalizeText(text);
-  return words.filter((word) => normalized.includes(normalizeText(word)));
+
+  return words
+    .filter(Boolean)
+    .map((word) => String(word).trim())
+    .filter((word) => {
+      if (!word) return false;
+
+      const clean = word.replace(/[^\p{L}\p{N}+#.-]/gu, "");
+
+      const isAsciiOnly = /^[a-z0-9\s.+#-]+$/i.test(clean);
+      if (isAsciiOnly && clean.length < 3) return false;
+
+      return clean.length >= 2;
+    })
+    .filter((word) => normalized.includes(normalizeText(word)));
 }
 
-export function scoreJob(job, profile, keywords, feedback = []) {
+function hasExperience(text, minYears) {
+  const matches = [
+    ...normalizeText(text).matchAll(/(\d+)\+?\s*(years|yrs|שנים)/g),
+  ];
+
+  return matches.some((match) => Number(match[1]) >= minYears);
+}
+
+function addUnique(items, value) {
+  if (value && !items.includes(value)) {
+    items.push(value);
+  }
+}
+
+export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
   const text = [job.title, job.company, job.location, job.description, job.via]
     .filter(Boolean)
     .join(" ");
+
   const reasons = [];
   const warnings = [];
 
-  let score = 35;
+  const hardRegexMatches = findRegexMatches(text, HARD_EXCLUDE_REGEX);
 
-  const roleMatches = findMatches(text, profile.targetRoles || []);
-  if (roleMatches.length) {
-    score += Math.min(30, roleMatches.length * 10);
-    reasons.push(
-      `Matches target role keywords: ${roleMatches.slice(0, 4).join(", ")}`,
-    );
+  if (hardRegexMatches.length) {
+    return {
+      fitScore: 0,
+      recommendation: "skip",
+      status: "skipped",
+      reasons: [],
+      warnings: [`נפסל אוטומטית: שירות לקוחות / טלפוני / מכירות / משמרות.`],
+    };
   }
 
-  const positiveMatches = findMatches(text, profile.positiveKeywords || []);
-  if (positiveMatches.length) {
-    score += Math.min(25, positiveMatches.length * 4);
-    reasons.push(`Positive signals: ${positiveMatches.slice(0, 6).join(", ")}`);
-  }
-
-  const locationMatches = findMatches(
-    text,
-    profile.preferences?.preferredLocations || [],
-  );
   if (
-    locationMatches.length ||
-    normalizeText(job.location).includes("israel")
+    job.roleFamily === "irrelevant" ||
+    (job.isRelevantRole === false && job.roleConfidence === "high")
   ) {
-    score += 15;
-    reasons.push("Location looks relevant for Israel / remote Israel.");
+    return {
+      fitScore: 0,
+      recommendation: "skip",
+      status: "skipped",
+      reasons: [],
+      warnings: ["נפסל: התפקיד לא שייך למסלול החיפוש שלך."],
+    };
   }
 
-  const excludedMatches = findMatches(text, keywords.exclude || []);
-  if (excludedMatches.length) {
-    const hardExcludes = [
-      "senior",
-      "lead",
-      "manager",
-      "director",
-      "principal",
-      "team lead",
-      "ראש צוות",
-      "מנהל",
-      "מהנדס",
-      "מהנדסת",
-      "בכיר",
-      "בכיר/ה",
-      "מנוסה",
-      "3 שנים",
-      "4 שנים",
-      "5 שנים",
-      "6 שנים",
-      "7 שנים",
-      "3-4 שנים",
-      "3+ years",
-      "4+ years",
-      "5+ years",
-      "6+ years",
-      "7+ years",
-      "משמרות",
-      "שבת",
-      "חגים",
-      "ירושלים",
-      "תל אביב",
-      "tel aviv",
-      "jerusalem",
-      "מרכז",
-      "דרום",
-    ];
+  let score = 20;
 
-    const hasHardExclude = excludedMatches.some((match) =>
-      hardExcludes.includes(match.toLowerCase()),
-    );
-
-    score -= hasHardExclude ? 70 : Math.min(45, excludedMatches.length * 12);
-
-    warnings.push(`Excluded: ${excludedMatches.slice(0, 5).join(", ")}`);
-
-    if (hasHardExclude) {
-      score = Math.min(score, 20);
-    }
+  if (job.roleFamily === "qa") {
+    score += 38;
+    addUnique(reasons, "זוהה תפקיד QA / בדיקות תוכנה.");
+  } else if (job.roleFamily === "information_systems") {
+    score += 26;
+    addUnique(reasons, "זוהה תפקיד מערכות מידע / הטמעה.");
+  } else if (job.roleFamily === "information") {
+    score += 16;
+    addUnique(reasons, "תפקיד מידע / בק אופיס / מסמכים — כיוון משני אפשרי.");
+  } else {
+    score -= 25;
+    warnings.push("לא זוהה תפקיד יעד ברור.");
   }
 
-  const yearsMatch = normalizeText(text).match(/(\d+)\+?\s*(years|yrs|שנים)/);
-  if (yearsMatch) {
-    const years = Number(yearsMatch[1]);
-    if (years >= 4) {
-      score -= 18;
-      warnings.push(`May require ${years}+ years of experience.`);
-    }
+  if (job.roleType === "qa_manual") {
+    score += 10;
+    addUnique(reasons, "בדיקות ידניות — מתאים לכניסה לתחום.");
+  }
+
+  if (job.roleType === "qa_automation") {
+    score += 6;
+    addUnique(reasons, "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.");
+  }
+
+  if (job.roleType === "qa_sap") {
+    score += 4;
+    addUnique(reasons, "QA על SAP — עשוי להיות רלוונטי אם לא בכיר מדי.");
+  }
+
+  if (job.seniority === "junior" || job.hasNoExperienceSignal) {
+    score += 18;
+    addUnique(reasons, "מתאים לג׳וניור / ללא ניסיון.");
+  }
+
+  if (job.seniority === "senior_or_lead" || job.hasSeniorSignal) {
+    score -= 35;
+    warnings.push("נראה בכיר/ניהולי מדי.");
+  }
+
+  if (hasExperience(text, 4)) {
+    score -= 35;
+    warnings.push("נראה שדורש 4 שנות ניסיון ומעלה.");
+  } else if (hasExperience(text, 3)) {
+    score -= 18;
+    warnings.push("ייתכן שדורש 3 שנות ניסיון ומעלה.");
+  }
+
+  if (GOOD_LOCATION_KEYS.has(job.locationKey)) {
+    score += 16;
+    addUnique(reasons, `מיקום מתאים: ${job.location}.`);
+  } else if (BAD_LOCATION_KEYS.has(job.locationKey)) {
+    score -= 22;
+    warnings.push(`מיקום פחות מתאים: ${job.location}.`);
+  } else if (!job.locationKey) {
+    score -= 8;
+    warnings.push("המיקום לא זוהה בוודאות.");
+  }
+
+  const targetMatches = findMatches(text, profile.targetRoles || []);
+  if (targetMatches.length) {
+    score += Math.min(12, targetMatches.length * 4);
+    reasons.push(`מילות יעד שנמצאו: ${targetMatches.slice(0, 4).join(", ")}.`);
   }
 
   const skillMatches = findMatches(text, profile.skills || []);
   if (skillMatches.length) {
-    score += Math.min(20, skillMatches.length * 4);
+    score += Math.min(12, skillMatches.length * 3);
     reasons.push(
-      `Your skills mentioned: ${skillMatches.slice(0, 5).join(", ")}`,
+      `כישורים שלך שמופיעים במשרה: ${skillMatches.slice(0, 4).join(", ")}.`,
     );
   }
 
+  const excludedMatches = findMatches(text, keywords.exclude || []);
+  if (excludedMatches.length) {
+    const unique = [...new Set(excludedMatches)].slice(0, 5);
+    score -= Math.min(35, unique.length * 8);
+    warnings.push(`מילות אזהרה: ${unique.join(", ")}.`);
+  }
+
   if (!job.url) {
-    score -= 8;
-    warnings.push("No direct application link was found.");
+    score -= 10;
+    warnings.push("לא נמצא קישור ישיר להגשה.");
   }
 
   const learning = getLearningAdjustment(job, feedback);
@@ -158,25 +205,13 @@ export function scoreJob(job, profile, keywords, feedback = []) {
   let recommendation = "review";
   if (score >= 75) recommendation = "apply";
   if (score < 45) recommendation = "skip";
-  const hardRegexMatches = findRegexMatches(text, HARD_EXCLUDE_REGEX);
 
-  if (hardRegexMatches.length) {
-    return {
-      fitScore: 0,
-      recommendation: "skip",
-      status: "skipped",
-      reasons: [],
-      warnings: [
-        `Hard excluded by regex: ${hardRegexMatches.slice(0, 3).join(", ")}`,
-      ],
-    };
-  }
   return {
     fitScore: score,
     recommendation,
     reasons: reasons.length
       ? reasons
-      : ["General match, but not enough strong positive signals."],
+      : ["התאמה כללית, אבל חסרים סימנים חזקים."],
     warnings,
   };
 }

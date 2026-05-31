@@ -116,6 +116,22 @@ export function extractRole(job = {}) {
     /stp/i,
     /std/i,
     /str/i,
+    /בודק(?:\/ת)?\s*csv/i,
+    /בודק(?:\/ת)?\s*erp/i,
+    /בדיקות\s*erp/i,
+    /בדיקות\s*csv/i,
+    /איכות\s*תוכנה/i,
+    /מהנדס(?:\/ת)?\s*איכות\s*תוכנה/i,
+    /sw\s*test\s*engineer/i,
+    /software\s*quality/i,
+    /מהנדס(?:\/ת)?\s*בדיקות/i,
+    /מהנדסת\s*בדיקות/i,
+    /מהנדס\s*בדיקות/i,
+    /בדיקות\s*web/i,
+    /בדיקות\s*mobile/i,
+    /web\s*\/?\s*mobile/i,
+    /mobile\s*tester/i,
+    /web\s*tester/i,
   ]);
 
   if (hasQaSignal) {
@@ -247,8 +263,17 @@ export function extractRole(job = {}) {
       result.roleConfidence = "medium";
     }
   }
-
-  if (hasAny(text, [/קצין/i, /בטיחות\s*בתעבורה/i, /רכב/i, /ליסינג/i])) {
+  if (
+    hasAny(text, [
+      /קצין(?:\/ת)?\s*בטיחות\s*בתעבורה/i,
+      /בטיחות\s*בתעבורה/i,
+      /צי\s*רכב/i,
+      /ניהול\s*רכב/i,
+      /ליסינג/i,
+      /נהג/i,
+      /נהיגה/i,
+    ])
+  ) {
     result.roleFamily = "irrelevant";
     result.roleType = "safety_transport";
     result.isRelevantRole = false;

@@ -27,6 +27,7 @@ const DEBUG_JOB_LIMIT = Number.parseInt(
   process.env.DEBUG_JOB_LIMIT || "10",
   10,
 );
+const SCAN_AUDIT_FILE = JOBS_FILE.replace(/jobs\.json$/i, "scan-audit.json");
 
 function limitDebugJobs(jobs) {
   if (!DEBUG_JOBS) return jobs;
@@ -67,12 +68,359 @@ function printDebugJobPreview(jobs, label = "DEBUG JOBS") {
   console.log("");
 }
 
-function isUsableJob(job = {}) {
-  if (job.status === "skipped") return false;
-  if (job.recommendation === "skip") return false;
-  if ((job.fitScore ?? 0) <= 0) return false;
+function hasBadSeniorityForMainList(job = {}) {
+  const text = [job.title, job.description, ...(job.warnings || [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
-  return true;
+  return /ראש\s*צוות|ר["״]?צ|cto|מנהל\/ת|מנהל|בכיר|בכירה|team\s*lead|lead|manager|5-6\s*שנים|4\s*שנים|4\+|5\+|6\s*שנים|ניסיון\s*מוכח/i.test(
+    text,
+  );
+}
+
+function hasJunkBusinessModel(job = {}) {
+  const text = [job.title, job.description]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /תיירות|חופשות|נופש|סוכני(?:\/ות)?\s*תיירות|רווחים\s*גבוהים|הכנסה\s*גבוהה|פנה(?:\/י)?\s*ללא\s*קו[״"]?ח/i.test(
+    text,
+  );
+}
+
+function normalizeFingerprintText(value = "") {
+  return String(value)
+    .toLowerCase()
+    .replace(/\b\d{4,6}\s*-\s*/g, "")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getStableJobKey(job = {}) {
+  const url = String(job.url || job.link || "");
+
+  const allJobsJobId = url.match(/[?&]JobID=(\d+)/i)?.[1];
+  if (allJobsJobId) return `alljobs:${allJobsJobId}`;
+
+  const drushimJobId = url.match(/drushim\.co\.il\/job\/([^/]+)/i)?.[1];
+  if (drushimJobId) return `drushim:${drushimJobId}`;
+
+  const jobMasterKey = url.match(/jobmaster\.co\.il.*key=(\d+)/i)?.[1];
+  if (jobMasterKey) return `jobmaster:${jobMasterKey}`;
+
+  return [
+    String(job.title || "")
+      .trim()
+      .toLowerCase(),
+    String(job.company || "")
+      .trim()
+      .toLowerCase(),
+    String(job.location || "")
+      .trim()
+      .toLowerCase(),
+  ]
+    .filter(Boolean)
+    .join("|");
+}
+
+function getJobFingerprint(job = {}) {
+  const url = String(job.url || job.link || "");
+
+  const allJobsJobId = url.match(/[?&]JobID=(\d+)/i)?.[1];
+
+  if (job.source === "AllJobs" && allJobsJobId) {
+    return `alljobs:${allJobsJobId}`;
+  }
+
+  const title = normalizeFingerprintText(job.title);
+  const company = normalizeFingerprintText(job.company);
+  const location = normalizeFingerprintText(job.locationKey || job.location);
+  const role = normalizeFingerprintText(job.roleType || job.roleFamily);
+
+  return [title, company, location, role].filter(Boolean).join("|");
+}
+
+function dedupeJobsByFingerprint(jobs = []) {
+  const seen = new Map();
+
+  for (const job of jobs) {
+    const fingerprint = getJobFingerprint(job);
+
+    if (!fingerprint) continue;
+
+    const existing = seen.get(fingerprint);
+
+    if (!existing) {
+      seen.set(fingerprint, job);
+      continue;
+    }
+
+    const existingScore = existing.fitScore ?? 0;
+    const currentScore = job.fitScore ?? 0;
+
+    // שומר את הגרסה הטובה יותר אם יש כפילות
+    if (currentScore > existingScore) {
+      seen.set(fingerprint, job);
+    }
+  }
+
+  return [...seen.values()];
+}
+
+function isUsableJob(job = {}) {
+  const score = Number(job.fitScore ?? 0);
+  const source = String(job.source || "");
+  const url = String(job.url || job.link || "");
+  const locationKey = String(job.locationKey || "");
+  const locationText = String(job.location || "");
+
+  const allowedMainLocationKeys = new Set([
+    "haifa",
+    "krayot",
+    "yokneam",
+    "north",
+    "remote",
+    "nesher",
+    "tirat_carmel",
+    "nahariya",
+    "acre",
+    "karmiel",
+  ]);
+
+  if (!allowedMainLocationKeys.has(locationKey)) {
+    return false;
+  }
+
+  const blockedLocationText =
+    /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|פתח\s*תקווה|ראש\s*העין|מרכז/i;
+
+  const blockedLocationKeys = new Set([
+    "or_yehuda",
+    "caesarea",
+    "kesariya",
+    "lod",
+    "rishon_lezion",
+    "holon",
+    "ramat_gan",
+    "tel_aviv",
+    "jerusalem",
+    "beer_sheva",
+    "petah_tikva",
+    "center",
+    "ראש_העין",
+    "אור_יהודה",
+    "קיסריה",
+    "לוד",
+  ]);
+
+  const allowedMainLocationKeys = new Set([
+    "haifa",
+    "krayot",
+    "yokneam",
+    "north",
+    "remote",
+    "nesher",
+    "tirat_carmel",
+    "nahariya",
+    "acre",
+    "karmiel",
+  ]);
+
+  if (!allowedMainLocationKeys.has(locationKey)) {
+    return false;
+  }
+
+  if (
+    blockedLocationKeys.has(locationKey) ||
+    blockedLocationText.test(locationText) ||
+    blockedLocationText.test(locationKey.replaceAll("_", " "))
+  ) {
+    return false;
+  }
+  const recommendation = String(job.recommendation || "");
+  const status = String(job.status || "");
+  const roleFamily = String(job.roleFamily || "");
+
+  if (status === "skipped") return false;
+  if (recommendation === "skip") return false;
+  if (score <= 0) return false;
+  if (roleFamily === "irrelevant") return false;
+  if (job.isRelevantRole === false) return false;
+  if (hasJunkBusinessModel(job)) return false;
+
+  // AllJobs is much noisier than Drushim/Matrix/JobMaster.
+  // It needs stricter rules so it does not flood the main list.
+  if (source === "AllJobs") {
+    if (!/JobID=\d+/i.test(url)) return false;
+
+    // Block parser-broken locations like "אור יהודהסוג משרה:"
+    if (
+      /סוג_?משרה|היקף_?משרה|דרישות/i.test(locationKey) ||
+      /סוג\s*משרה|היקף\s*משרה|דרישות/i.test(locationText)
+    ) {
+      return false;
+    }
+
+    if (hasBadSeniorityForMainList(job)) return false;
+
+    const weakLocations = new Set([
+      "center",
+      "tel_aviv",
+      "ramat_gan",
+      "hod_hasharon",
+      "petah_tikva",
+      "raanana",
+      "rishon_lezion",
+      "holon",
+      "lod",
+      "לוד",
+      "ראש_העין",
+    ]);
+
+    const goodLocations = new Set([
+      "haifa",
+      "krayot",
+      "yokneam",
+      "north",
+      "remote",
+      "nesher",
+      "tirat_carmel",
+      "nahariya",
+      "acre",
+      "karmiel",
+    ]);
+
+    // Unknown location from AllJobs is suspicious.
+    // Keep only if the score is strong enough.
+    if (!locationKey && score < 78) return false;
+
+    // Center / Tel Aviv / Ramat Gan / etc. are less relevant for you.
+    // Keep only if the match is strong.
+    if (weakLocations.has(locationKey) && score < 75) return false;
+
+    if (roleFamily === "qa" || roleFamily === "automation") {
+      if (goodLocations.has(locationKey)) return score >= 50;
+      return score >= 60;
+    }
+
+    if (roleFamily === "information_systems") {
+      return score >= 65;
+    }
+
+    if (roleFamily === "information") {
+      return score >= 70;
+    }
+
+    return false;
+  }
+
+  // Cleaner providers: keep the wider recall behavior.
+  if (roleFamily === "qa" || roleFamily === "automation") {
+    if (hasBadSeniorityForMainList(job)) return false;
+    return score >= 25;
+  }
+
+  if (roleFamily === "information_systems") {
+    if (hasBadSeniorityForMainList(job)) return false;
+    return score >= 45;
+  }
+
+  if (roleFamily === "information") {
+    if (hasBadSeniorityForMainList(job)) return false;
+    return score >= 60;
+  }
+
+  return score >= 70;
+}
+
+function getAuditDecision(job = {}, keptKeys = new Set(), keptIds = new Set()) {
+  if (keptKeys.has(getStableJobKey(job)) || keptIds.has(job.id)) {
+    return "kept_duplicate_or_saved";
+  }
+
+  if (job.status === "skipped") {
+    return "filtered_status_skipped";
+  }
+
+  if (job.recommendation === "skip") {
+    return "filtered_recommendation_skip";
+  }
+
+  if (job.roleFamily === "irrelevant") {
+    return "filtered_irrelevant_role";
+  }
+
+  if ((job.fitScore ?? 0) < 40) {
+    return "filtered_low_score";
+  }
+
+  return "filtered_other";
+}
+
+function buildScanAudit({
+  incomingJobs = [],
+  scoredIncoming = [],
+  jobsForThisRun = [],
+}) {
+  const keptKeys = new Set(jobsForThisRun.map(getStableJobKey));
+  const keptIds = new Set(jobsForThisRun.map((job) => job.id));
+
+  return {
+    createdAt: new Date().toISOString(),
+    totals: {
+      incoming: incomingJobs.length,
+      scored: scoredIncoming.length,
+      kept: jobsForThisRun.length,
+      filtered: Math.max(scoredIncoming.length - jobsForThisRun.length, 0),
+    },
+    jobs: scoredIncoming.map((job) => {
+      const stableKey = getStableJobKey(job);
+      const kept = keptKeys.has(stableKey) || keptIds.has(job.id);
+
+      return {
+        decision: getAuditDecision(job, keptKeys, keptIds),
+        kept,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        locationKey: job.locationKey,
+        source: job.source,
+        sourceQuery: job.sourceQuery,
+        url: job.url,
+        roleFamily: job.roleFamily,
+        roleType: job.roleType,
+        seniority: job.seniority,
+        isRelevantRole: job.isRelevantRole,
+        fitScore: job.fitScore,
+        recommendation: job.recommendation,
+        status: job.status,
+        reasons: job.reasons || [],
+        warnings: job.warnings || [],
+      };
+    }),
+  };
+}
+
+async function writeScanAuditFile({
+  incomingJobs,
+  scoredIncoming,
+  jobsForThisRun,
+}) {
+  const audit = buildScanAudit({
+    incomingJobs,
+    scoredIncoming,
+    jobsForThisRun,
+  });
+
+  await writeJson(SCAN_AUDIT_FILE, audit);
+
+  console.log(
+    `Scan audit written: ${SCAN_AUDIT_FILE} | kept ${audit.totals.kept}/${audit.totals.scored}`,
+  );
 }
 
 function resetScanStats() {
@@ -338,18 +686,22 @@ async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
 
   printDebugJobPreview(jobsForThisPartialRun, "DEBUG PARTIAL JOB PREVIEW");
 
-  if (DEBUG_DRY_RUN) {
-    console.log(
-      `DEBUG_DRY_RUN=true — not writing partial jobs. Would save ${jobsForThisPartialRun.length} jobs from this provider batch.`,
-    );
-    return;
-  }
-
   const partialMerged = sortJobs(
     uniqueById([...currentJobs, ...jobsForThisPartialRun]),
   );
 
+  if (DEBUG_DRY_RUN) {
+    console.log(
+      `DEBUG_DRY_RUN=true — not writing partial jobs.json. Would save ${partialMerged.length} jobs so far.`,
+    );
+    return;
+  }
+
+  console.log(`Writing partial jobs.json to: ${JOBS_FILE}`);
   await writeJson(JOBS_FILE, partialMerged);
+  console.log(
+    `Wrote partial jobs.json: ${JOBS_FILE} (${partialMerged.length} jobs)`,
+  );
 
   console.log(`Saved ${partialMerged.length} jobs so far`);
 }
@@ -401,7 +753,7 @@ export async function findJobs({ useMock = false } = {}) {
 
           const normalizedJobs = results
             .filter((result) => result.link && result.title)
-            .map((result) => normalizeJobMasterJob(result, query))
+            .map((result) => normalizePlaywrightJob(result, query))
             .filter((job) => job.status !== "skipped");
 
           addProviderStats("Playwright", { normalized: normalizedJobs.length });
@@ -460,6 +812,7 @@ export async function findJobs({ useMock = false } = {}) {
         } catch (error) {
           addProviderStats("Drushim", { errors: 1 });
           console.warn(`Skipped Drushim query "${query}": ${error.message}`);
+          console.warn(error.stack || error);
         }
       }
 
@@ -537,6 +890,7 @@ export async function findJobs({ useMock = false } = {}) {
         } catch (error) {
           addProviderStats("AllJobs", { errors: 1 });
           console.warn(`Skipped AllJobs query "${query}": ${error.message}`);
+          console.warn(error.stack || error);
         }
       }
 
@@ -573,6 +927,7 @@ export async function findJobs({ useMock = false } = {}) {
         } catch (error) {
           addProviderStats("Matrix", { errors: 1 });
           console.warn(`Skipped Matrix query "${query}": ${error.message}`);
+          console.warn(error.stack || error);
         }
       }
 
@@ -625,8 +980,15 @@ export async function findJobs({ useMock = false } = {}) {
   }));
 
   const usableScoredIncoming = scoredIncoming.filter(isUsableJob);
+  const dedupedUsableScoredIncoming =
+    dedupeJobsByFingerprint(usableScoredIncoming);
+  const jobsForThisRun = limitDebugJobs(dedupedUsableScoredIncoming);
 
-  const jobsForThisRun = limitDebugJobs(usableScoredIncoming);
+  await writeScanAuditFile({
+    incomingJobs,
+    scoredIncoming,
+    jobsForThisRun,
+  });
 
   printDebugJobPreview(jobsForThisRun, "DEBUG FINAL JOB PREVIEW");
 
