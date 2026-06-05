@@ -1,468 +1,324 @@
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Archive,
   Bookmark,
   Building2,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  CircleDot,
   ExternalLink,
   MapPin,
+  Send,
   Sparkles,
   Trash2,
-  X,
 } from "lucide-react";
 
 const rejectionReasons = [
-  { value: "location", label: "מיקום" },
+  { value: "location", label: "מיקום לא מתאים" },
   { value: "shifts", label: "משמרות / לילות" },
   { value: "phone", label: "טלפוני מדי" },
-  { value: "senior", label: "סניור / ניהולי מדי" },
-  { value: "wrong_role", label: "לא התפקיד שרציתי" },
-  { value: "other", label: "אחר" },
+  { value: "senior", label: "בכיר / ניהולי מדי" },
+  { value: "wrong_role", label: "תפקיד לא מתאים" },
+  { value: "other", label: "סיבה אחרת" },
 ];
 
 function getScoreTheme(score = 0) {
-  if (score >= 80) {
+  if (score >= 85) {
     return {
-      label: "התאמה גבוהה",
-      edge: "border-r-emerald-500",
-      scoreBox: "border-emerald-200 bg-emerald-50 text-emerald-700",
-      pill: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      dot: "bg-emerald-500",
+      label: "התאמה מעולה",
+      ring: "from-emerald-400 to-teal-500",
+      badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+      surface: "bg-emerald-50 text-emerald-900 ring-emerald-100",
+      primary: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200",
     };
   }
 
-  if (score >= 60) {
+  if (score >= 70) {
     return {
       label: "התאמה טובה",
-      edge: "border-r-amber-500",
-      scoreBox: "border-amber-200 bg-amber-50 text-amber-700",
-      pill: "bg-amber-50 text-amber-700 border-amber-200",
-      dot: "bg-amber-500",
+      ring: "from-sky-400 to-indigo-500",
+      badge: "bg-sky-50 text-sky-700 ring-sky-200",
+      surface: "bg-sky-50 text-sky-900 ring-sky-100",
+      primary: "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-200",
     };
   }
 
-  if (score >= 40) {
+  if (score >= 55) {
     return {
-      label: "התאמה בינונית",
-      edge: "border-r-orange-500",
-      scoreBox: "border-orange-200 bg-orange-50 text-orange-700",
-      pill: "bg-orange-50 text-orange-700 border-orange-200",
-      dot: "bg-orange-500",
+      label: "שווה בדיקה",
+      ring: "from-amber-300 to-orange-500",
+      badge: "bg-amber-50 text-amber-700 ring-amber-200",
+      surface: "bg-amber-50 text-amber-900 ring-amber-100",
+      primary: "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-200",
     };
   }
 
   return {
-    label: "כנראה לא מתאים",
-    edge: "border-r-red-500",
-    scoreBox: "border-red-200 bg-red-50 text-red-700",
-    pill: "bg-red-50 text-red-700 border-red-200",
-    dot: "bg-red-500",
+    label: "התאמה חלשה",
+    ring: "from-slate-300 to-slate-500",
+    badge: "bg-slate-100 text-slate-600 ring-slate-200",
+    surface: "bg-slate-50 text-slate-700 ring-slate-200",
+    primary: "bg-slate-800 hover:bg-slate-900 text-white shadow-slate-200",
   };
 }
 
-function statusClass(status) {
+function statusMeta(status) {
   switch (status) {
-    case "found":
-      return "bg-blue-50 text-blue-700 border-blue-200";
-    case "saved":
-      return "bg-violet-50 text-violet-700 border-violet-200";
     case "applied":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return {
+        label: "נשלח",
+        hint: "סומן שכבר שלחת קורות חיים",
+        className: "bg-emerald-500 text-white shadow-emerald-200",
+        icon: CheckCircle2,
+      };
+    case "saved":
+      return {
+        label: "שמורה",
+        hint: "ממתינה לטיפול מאוחר יותר",
+        className: "bg-violet-500 text-white shadow-violet-200",
+        icon: Bookmark,
+      };
     case "interview":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return {
+        label: "ראיון",
+        hint: "התקדמות בתהליך",
+        className: "bg-sky-500 text-white shadow-sky-200",
+        icon: Sparkles,
+      };
+    case "archived":
+      return {
+        label: "בארכיון",
+        hint: "הוסרה מהרשימות הפעילות",
+        className: "bg-slate-700 text-white shadow-slate-200",
+        icon: Archive,
+      };
     case "rejected":
-      return "bg-rose-50 text-rose-700 border-rose-200";
     case "skipped":
-      return "bg-slate-100 text-slate-600 border-slate-200";
+      return {
+        label: "הוסרה",
+        hint: "לא תופיע ברשימות הפעילות",
+        className: "bg-red-500 text-white shadow-red-200",
+        icon: Trash2,
+      };
     default:
-      return "bg-slate-100 text-slate-700 border-slate-200";
+      return {
+        label: "טרם נשלח",
+        hint: "עדיין לא סימנת שהגשת",
+        className: "bg-slate-100 text-slate-700 shadow-slate-200",
+        icon: CircleDot,
+      };
   }
 }
 
-function splitDescription(text = "") {
-  return String(text)
-    .replace(/\s*·\s*/g, "\n")
-    .replace(/\s*[•]\s*/g, "\n")
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => line.length > 2)
-    .filter((line, index, arr) => arr.indexOf(line) === index);
+function recommendationLabel(value) {
+  if (value === "apply") return "מומלץ לשלוח";
+  if (value === "review") return "צריך בדיקה";
+  if (value === "skip") return "לא מומלץ";
+  return "צריך בדיקה";
 }
 
-function getShortBullets(description = "") {
-  return splitDescription(description)
-    .filter((line) => !/^found$/i.test(line))
-    .filter((line) => !/^details$/i.test(line))
-    .filter((line) => !/^apply$/i.test(line))
-    .slice(0, 3);
+function roleLabel(job = {}) {
+  const role = String(job.roleFamily || job.roleType || "").toLowerCase();
+  if (role.includes("automation")) return "אוטומציה";
+  if (role.includes("qa")) return "בדיקות תוכנה";
+  if (role.includes("information_systems")) return "מערכות מידע";
+  if (role.includes("information")) return "מידע ומסמכים";
+  return "תפקיד כללי";
 }
 
-function buildTags(job) {
-  const text = [
-    job.title,
-    job.company,
-    job.location,
-    job.description,
-    ...(job.reasons || []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  const tags = [];
-
-  if (/qa|בדיק|בודק|בודקת/.test(text)) tags.push("QA");
-  if (/junior|ג׳וניור|ג'וניור|ללא ניסיון|ללא נסיון/.test(text)) {
-    tags.push("Junior / ללא ניסיון");
-  }
-  if (/manual|ידני|ידניות/.test(text)) tags.push("Manual");
-  if (/automation|אוטומציה|selenium|playwright|cypress/.test(text)) {
-    tags.push("Automation");
-  }
-  if (/sql/.test(text)) tags.push("SQL");
-  if (/document|בקרת מסמכים|מסמכים|plm/.test(text)) tags.push("Documents");
-  if (/fraud|risk|סיכון|הונאה/.test(text)) tags.push("Risk/Fraud");
-
-  return [...new Set(tags)].slice(0, 4);
+function cleanText(value = "") {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-function DetailBox({ title, icon, items, emptyText }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4 text-right">
-      <div className="mb-2 flex items-center justify-start gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
-        {icon}
-        {title}
-      </div>
-
-      {items?.length ? (
-        <ul className="space-y-1.5 text-sm leading-6 text-slate-700">
-          {items.slice(0, 6).map((item, index) => (
-            <li key={index} className="flex flex-row-reverse justify-end gap-2">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-slate-500">{emptyText}</p>
-      )}
-    </div>
-  );
+function uniqueLimited(list = [], max = 3) {
+  return [...new Set(list.filter(Boolean))].slice(0, max);
 }
 
-export default function JobCard({ job, onStatusChange, onDelete }) {
-  const [open, setOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
+export default function JobCard({ job, onStatusChange, onDelete, readOnly = false, manualReview = false, sourceLabel }) {
+  const [expanded, setExpanded] = useState(false);
+  const [rejectReason, setRejectReason] = useState("wrong_role");
+  const [busy, setBusy] = useState(false);
 
-  const score = job.fitScore ?? 0;
+  const score = Number(job.fitScore || 0);
   const theme = getScoreTheme(score);
+  const status = statusMeta(job.status);
+  const StatusIcon = status.icon;
+  const isApplied = job.status === "applied";
+  const isSaved = job.status === "saved";
 
-  const tags = useMemo(() => buildTags(job), [job]);
-  const bullets = useMemo(
-    () => getShortBullets(job.description),
-    [job.description],
-  );
-  const descriptionLines = useMemo(
-    () => splitDescription(job.description),
-    [job.description],
-  );
+  const reasons = useMemo(() => uniqueLimited(job.reasons || [], expanded ? 8 : 3), [job.reasons, expanded]);
+  const warnings = useMemo(() => uniqueLimited(job.warnings || [], expanded ? 8 : 2), [job.warnings, expanded]);
 
-  const source = job.source || job.via || "Unknown source";
-  const foundDate = job.foundAt
-    ? new Date(job.foundAt).toLocaleDateString("he-IL")
-    : "Unknown";
+  const progress = Math.max(0, Math.min(100, score));
+  const title = job.title || "משרה ללא כותרת";
+  const company = job.company || "חברה לא ידועה";
+  const location = job.location || "מיקום לא ידוע";
+
+  async function safeAction(action) {
+    setBusy(true);
+    try {
+      await action();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <>
-      <article
-        dir="rtl"
-        className={`group overflow-hidden rounded-3xl border border-r-4 border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg ${theme.edge}`}
-      >
-        <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[96px_minmax(0,1fr)_135px] md:items-start md:p-5">
-          {/* Score - right side */}
-          <div className="flex justify-start md:justify-center">
+    <article className={`group relative overflow-hidden rounded-[2rem] border bg-white/95 shadow-xl shadow-slate-200/55 ring-1 ring-white/70 transition hover:-translate-y-0.5 hover:shadow-2xl ${isApplied ? "border-emerald-200" : "border-slate-200"}`}>
+      <div className={`absolute inset-y-0 right-0 w-1.5 bg-gradient-to-b ${theme.ring}`} />
+
+      <div className="grid gap-5 p-5 lg:grid-cols-[118px_1fr] lg:p-6">
+        <aside className="flex lg:block">
+          <div className="flex w-full items-center justify-between gap-4 rounded-3xl bg-slate-950 p-4 text-white lg:block lg:text-center">
             <div
-              className={`flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-2xl border ${theme.scoreBox}`}
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-full p-1"
+              style={{ background: `conic-gradient(rgb(16 185 129) ${progress * 3.6}deg, rgb(51 65 85) 0deg)` }}
             >
-              <span className="text-3xl font-black leading-none">{score}</span>
-              <span className="mt-1 text-xs font-bold">ציון התאמה</span>
-            </div>
-          </div>
-
-          {/* Content - middle */}
-          <div className="min-w-0 text-right">
-            <div className="mb-2 flex flex-wrap items-center justify-start gap-2">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${theme.pill}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${theme.dot}`} />
-                {theme.label}
-              </span>
-
-              <span
-                className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass(job.status)}`}
-              >
-                {job.status || "found"}
-              </span>
-
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {job.recommendation || "review"}
-              </span>
-            </div>
-
-            <h2 className="text-lg font-black leading-snug text-slate-950 md:text-xl">
-              {job.title}
-            </h2>
-
-            <div className="mt-2 flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-1.5">
-                <Building2 size={15} />
-                {job.company || source}
-              </span>
-
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin size={15} />
-                {job.location || "Israel"}
-              </span>
-
-              <span className="inline-flex items-center gap-1.5">
-                <Sparkles size={15} />
-                {source}
-              </span>
-            </div>
-
-            {tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap justify-start gap-2">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
-                  >
-                    {tag}
-                  </span>
-                ))}
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-slate-950">
+                <span className="text-2xl font-black leading-none">{score}</span>
+                <span className="mt-1 text-[10px] font-black text-slate-400">ציון</span>
               </div>
-            )}
+            </div>
 
-            {bullets.length > 0 && (
-              <ul className="mt-4 grid gap-1.5 text-right text-sm leading-6 text-slate-700">
-                {bullets.map((bullet, index) => (
-                  <li
-                    key={index}
-                    className="flex flex-row-reverse justify-end gap-2"
-                  >
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
-                    <span>{bullet}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="mt-0 lg:mt-4">
+              <p className="text-sm font-black">{theme.label}</p>
+              <p className="mt-1 text-xs font-bold text-slate-400">{recommendationLabel(job.recommendation)}</p>
+            </div>
           </div>
+        </aside>
 
-          {/* Actions - left side */}
-          <div className="flex flex-row flex-wrap items-start justify-start gap-2 md:flex-col md:items-start">
-            <div className="mb-1 text-left">
-              <p className="text-sm font-black text-blue-700">{source}</p>
-              <p className="mt-1 text-xs text-slate-500">{foundDate}</p>
+        <section className="min-w-0">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black shadow-sm ${status.className}`}>
+                  <StatusIcon size={14} /> {status.label}
+                </span>
+                <span className={`rounded-full px-3 py-1.5 text-xs font-black ring-1 ${theme.badge}`}>{recommendationLabel(job.recommendation)}</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600 ring-1 ring-slate-200">{roleLabel(job)}</span>
+              </div>
+
+              <h3 className="text-2xl font-black leading-9 tracking-tight text-slate-950">
+                {title}
+              </h3>
+
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold text-slate-500">
+                <span className="inline-flex items-center gap-1.5"><Building2 size={16} />{company}</span>
+                <span className="inline-flex items-center gap-1.5"><MapPin size={16} />{location}</span>
+                <span className="inline-flex items-center gap-1.5"><Sparkles size={16} />{sourceLabel || job.source || "מקור לא ידוע"}</span>
+              </div>
+
+              {manualReview && (
+                <div className="mt-4 rounded-3xl border border-indigo-100 bg-indigo-50/85 px-4 py-3 text-sm font-extrabold leading-7 text-indigo-800">
+                  משרה לבדיקה ידנית: אם סימנת ששלחת או שמרת, היא תיעלם מהבדיקה הידנית, תעבור לטאב המתאים והמערכת תלמד לחזק משרות דומות בעתיד.
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-wrap justify-start gap-2">
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onStatusChange(job.id, "saved");
-                }}
-                disabled={job.status === "saved" || job.status === "applied"}
-                className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-70 ${
-                  job.status === "saved" || job.status === "applied"
-                    ? "border-violet-200 bg-violet-50 text-violet-700"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-violet-50 hover:text-violet-700"
-                }`}
-                title="שמור לבדיקה מאוחר יותר"
-              >
-                <Bookmark size={14} />
-                {job.status === "saved" || job.status === "applied"
-                  ? "שמור"
-                  : "שמור"}
-              </button>
+            <div className="flex shrink-0 flex-col gap-2 xl:items-end">
+              <div className={`rounded-2xl px-4 py-2 text-xs font-black shadow-sm ${isApplied ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"}`}>
+                {status.hint}
+              </div>
 
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onStatusChange(job.id, "applied");
-                }}
-                disabled={job.status === "applied"}
-                className={`inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-80 ${
-                  job.status === "applied"
-                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700"
-                }`}
-                title="סמן שהגשת קו״ח"
-              >
-                <CheckCircle2 size={14} />
-                {job.status === "applied" ? "הוגש" : "הגשתי"}
-              </button>
-            </div>
-
-            <div className="flex flex-wrap justify-start gap-2">
               {job.url && (
                 <a
                   href={job.url}
                   target="_blank"
                   rel="noreferrer"
-                  onClick={(event) => event.stopPropagation()}
-                  className="inline-flex items-center gap-1 rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+                  className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black shadow-lg transition hover:-translate-y-0.5 ${theme.primary}`}
                 >
-                  פתח משרה <ExternalLink size={14} />
+                  פתח משרה <ExternalLink size={17} />
                 </a>
               )}
+            </div>
+          </div>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setRejectOpen(true);
-                  }}
-                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-2.5 py-2 text-xs font-bold text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                  title="לא רלוונטי — בחר סיבה כדי שהמערכת תלמד"
-                >
-                  <Trash2 size={14} />
-                  לא מתאים
-                </button>
-
-                {rejectOpen && (
-                  <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setRejectOpen(false);
-                    }}
-                  >
-                    <div
-                      dir="rtl"
-                      className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-4 text-right shadow-2xl"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <p className="text-sm font-black text-slate-800">
-                          למה לא מתאים?
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={() => setRejectOpen(false)}
-                          className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                          title="סגור"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-
-                      <div className="grid gap-2">
-                        {rejectionReasons.map((reason) => (
-                          <button
-                            key={reason.value}
-                            type="button"
-                            onClick={() => {
-                              setRejectOpen(false);
-                              onDelete(job.id, {
-                                rejectionReason: reason.value,
-                              });
-                            }}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-sm font-bold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
-                          >
-                            {reason.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="mt-5 grid gap-3 xl:grid-cols-2">
+            <div className={`rounded-3xl p-4 ring-1 ${reasons.length ? "bg-emerald-50 text-emerald-900 ring-emerald-100" : "bg-slate-50 text-slate-500 ring-slate-200"}`}>
+              <p className="mb-2 flex items-center gap-2 text-sm font-black"><CheckCircle2 size={17} /> למה כדאי לבדוק</p>
+              {reasons.length > 0 ? (
+                <ul className="grid gap-1.5 text-sm font-semibold leading-6">
+                  {reasons.map((reason, index) => <li key={index}>• {reason}</li>)}
+                </ul>
+              ) : (
+                <p className="text-sm font-semibold">אין סיבות התאמה מפורטות.</p>
+              )}
             </div>
 
+            <div className={`rounded-3xl p-4 ring-1 ${warnings.length ? "bg-amber-50 text-amber-900 ring-amber-100" : "bg-slate-50 text-slate-500 ring-slate-200"}`}>
+              <p className="mb-2 flex items-center gap-2 text-sm font-black"><AlertTriangle size={17} /> מה עדיין לבדוק</p>
+              {warnings.length > 0 ? (
+                <ul className="grid gap-1.5 text-sm font-semibold leading-6">
+                  {warnings.map((warning, index) => <li key={index}>• {warning}</li>)}
+                </ul>
+              ) : (
+                <p className="text-sm font-semibold">לא נמצאו אזהרות מיוחדות.</p>
+              )}
+            </div>
+          </div>
+
+          {expanded && job.description && (
+            <div className="mt-4 rounded-3xl bg-slate-50 p-4 text-sm font-semibold leading-7 text-slate-700 ring-1 ring-slate-200">
+              {cleanText(job.description).slice(0, 1400)}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 xl:flex-row xl:items-center xl:justify-between">
             <button
-              onClick={() => setOpen((value) => !value)}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-50"
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-600 shadow-sm transition hover:bg-slate-50"
             >
-              {open ? "פחות פרטים" : "פרטים נוספים"}
-              {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {expanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+              {expanded ? "הסתר פרטים" : "הצג פרטים"}
             </button>
-          </div>
-        </div>
 
-        {open && (
-          <div className="border-t border-slate-100 bg-white px-4 pb-5 md:px-5">
-            <div className="grid gap-3 pt-4 lg:grid-cols-3">
-              <DetailBox
-                title="למה זה מתאים"
-                icon={<Sparkles size={14} />}
-                items={job.reasons || []}
-                emptyText="אין סיבות התאמה מיוחדות."
-              />
-
-              <DetailBox
-                title="אזהרות"
-                icon={<AlertTriangle size={14} />}
-                items={job.warnings || []}
-                emptyText="אין אזהרות משמעותיות."
-              />
-
-              <DetailBox
-                title="תיאור מסודר"
-                icon={<ChevronDown size={14} />}
-                items={descriptionLines}
-                emptyText="אין תיאור משרה."
-              />
-            </div>
-          </div>
-        )}
-      </article>
-
-      {rejectOpen && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/45 p-4"
-          onMouseDown={() => setRejectOpen(false)}
-        >
-          <div
-            dir="rtl"
-            className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-4 text-right shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-sm font-black text-slate-800">למה לא מתאים?</p>
-
-              <button
-                type="button"
-                onClick={() => setRejectOpen(false)}
-                className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                title="סגור"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="grid gap-2">
-              {rejectionReasons.map((reason) => (
+            {!readOnly && (
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  key={reason.value}
                   type="button"
-                  onClick={() => {
-                    setRejectOpen(false);
-                    onDelete(job.id, { rejectionReason: reason.value });
-                  }}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-sm font-bold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                  disabled={busy || isSaved}
+                  onClick={() => safeAction(() => onStatusChange(job.id, "saved"))}
+                  className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition disabled:opacity-70 ${isSaved ? "bg-violet-600 text-white" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}
                 >
-                  {reason.label}
+                  <Bookmark size={17} /> {isSaved ? "שמורה" : manualReview ? "שמור ולמד" : "שמור"}
                 </button>
-              ))}
-            </div>
+
+                <button
+                  type="button"
+                  disabled={busy || isApplied}
+                  onClick={() => safeAction(() => onStatusChange(job.id, "applied"))}
+                  className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black shadow-sm transition disabled:opacity-90 ${isApplied ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                >
+                  {isApplied ? <CheckCircle2 size={17} /> : <Send size={17} />}
+                  {isApplied ? "סומן כנשלח" : manualReview ? "שלחתי — למד מזה" : "סימנתי ששלחתי"}
+                </button>
+
+                <select
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  className="h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm outline-none focus:border-red-300 focus:ring-4 focus:ring-red-50"
+                >
+                  {rejectionReasons.map((reason) => (
+                    <option key={reason.value} value={reason.value}>{reason.label}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => safeAction(() => onDelete(job.id, { rejectionReason: rejectReason }))}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-2.5 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                >
+                  <Trash2 size={17} /> {manualReview ? "הסר מהבדיקה" : "לא מתאים"}
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </>
+        </section>
+      </div>
+    </article>
   );
 }

@@ -1,16 +1,65 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { FEEDBACK_FILE, JOBS_FILE, KEYWORDS_FILE, PROFILE_FILE } from './paths.js';
+import {
+  FEEDBACK_FILE,
+  JOBS_FILE,
+  KEYWORDS_FILE,
+  PROFILE_FILE,
+  ROLE_PROFILES_FILE,
+  SCAN_AUDIT_FILE,
+  SITE_SOURCES_FILE,
+} from './paths.js';
 import { readJson, writeJson } from './fileStore.js';
 import { findJobs } from './findJobs.js';
 import { createFeedbackEntry } from './learning.js';
+import { createJobId, uniqueById } from './utils.js';
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
 
-const ALLOWED_STATUSES = new Set(['found', 'saved', 'applied', 'interview', 'rejected', 'skipped']);
+const ALLOWED_STATUSES = new Set(['found', 'saved', 'applied', 'interview', 'archived', 'rejected', 'skipped']);
 const FEEDBACK_STATUSES = new Set(['saved', 'applied', 'interview', 'rejected', 'skipped']);
+const MAIN_LOCATION_KEYS = new Set([
+  'haifa',
+  'krayot',
+  'yokneam',
+  'north',
+  'remote',
+  'nesher',
+  'tirat_carmel',
+  'nahariya',
+  'acre',
+  'karmiel',
+]);
+
+
+function buildScanSummary(audit = {}, savedJobs = [], feedback = [], siteSources = []) {
+  const jobs = Array.isArray(audit.jobs) ? audit.jobs : [];
+  const bySource = jobs.reduce((acc, job) => {
+    const source = job.source || 'מקור לא ידוע';
+    if (!acc[source]) {
+      acc[source] = { source, total: 0, kept: 0, filtered: 0, apply: 0, review: 0 };
+    }
+
+    acc[source].total += 1;
+    if (job.kept) acc[source].kept += 1;
+    else acc[source].filtered += 1;
+    if (job.recommendation === 'apply') acc[source].apply += 1;
+    if (job.recommendation === 'review') acc[source].review += 1;
+
+    return acc;
+  }, {});
+
+  return {
+    createdAt: audit.createdAt || null,
+    totals: audit.totals || { incoming: 0, scored: 0, kept: savedJobs.length, filtered: 0 },
+    savedJobs: savedJobs.length,
+    feedbackEvents: feedback.length,
+    activeSiteSources: siteSources.filter((source) => source && source.enabled !== false).length,
+    bySource: Object.values(bySource).sort((a, b) => b.kept - a.kept || b.total - a.total),
+  };
+}
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
@@ -18,7 +67,71 @@ app.use(express.json({ limit: '1mb' }));
 async function appendFeedback(job, action, metadata = {}) {
   const feedback = await readJson(FEEDBACK_FILE, []);
   feedback.push(createFeedbackEntry(job, action, metadata));
-  await writeJson(FEEDBACK_FILE, feedback.slice(-1000));
+  await writeJson(FEEDBACK_FILE, feedback.slice(-1500));
+}
+
+function getReviewKey(job = {}) {
+  const url = String(job.url || '');
+  const allJobsId = url.match(/[?&]JobID=(\d+)/i)?.[1];
+  if (allJobsId) return `alljobs:${allJobsId}`;
+
+  const jobMasterKey = url.match(/jobmaster\.co\.il.*key=(\d+)/i)?.[1];
+  if (jobMasterKey) return `jobmaster:${jobMasterKey}`;
+
+  return [job.title, job.company, job.locationKey || job.location]
+    .filter(Boolean)
+    .join('|')
+    .toLowerCase();
+}
+
+function getReviewId(job = {}) {
+  return Buffer.from(getReviewKey(job), 'utf8').toString('base64url');
+}
+
+function getFeedbackReviewKey(item = {}) {
+  return item.reviewKey || getReviewKey(item);
+}
+
+function buildReviewJobs(audit = {}, savedJobs = [], feedback = []) {
+  const savedKeys = new Set(savedJobs.map(getReviewKey));
+  const handledReviewKeys = new Set(
+    feedback
+      .filter((item) => ['saved', 'applied', 'interview', 'deleted', 'rejected', 'skipped', 'not_relevant'].includes(item?.action))
+      .map(getFeedbackReviewKey)
+      .filter(Boolean),
+  );
+  const reviewMap = new Map();
+
+  for (const job of audit.jobs || []) {
+    const key = getReviewKey(job);
+    if (!key || savedKeys.has(key) || handledReviewKeys.has(key) || job.kept) continue;
+    if (!MAIN_LOCATION_KEYS.has(job.locationKey)) continue;
+
+    const looksInteresting =
+      job.decision === 'filtered_other' ||
+      job.recommendation === 'apply' ||
+      job.recommendation === 'review' ||
+      Number(job.fitScore || 0) >= 50;
+
+    if (!looksInteresting) continue;
+
+    const existing = reviewMap.get(key);
+    if (!existing || Number(job.fitScore || 0) > Number(existing.fitScore || 0)) {
+      reviewMap.set(key, {
+        ...job,
+        id: getReviewId(job),
+        reviewKey: key,
+        status: 'found',
+        fromManualReview: true,
+      });
+    }
+  }
+
+  return [...reviewMap.values()].sort((a, b) => Number(b.fitScore || 0) - Number(a.fitScore || 0));
+}
+
+function findReviewJobById(audit = {}, savedJobs = [], feedback = [], reviewId = '') {
+  return buildReviewJobs(audit, savedJobs, feedback).find((job) => job.id === reviewId);
 }
 
 app.get('/api/health', (req, res) => {
@@ -29,6 +142,20 @@ app.get('/api/jobs', async (req, res, next) => {
   try {
     const jobs = await readJson(JOBS_FILE, []);
     res.json(jobs);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/review', async (req, res, next) => {
+  try {
+    const [audit, savedJobs, feedback] = await Promise.all([
+      readJson(SCAN_AUDIT_FILE, { jobs: [] }),
+      readJson(JOBS_FILE, []),
+      readJson(FEEDBACK_FILE, []),
+    ]);
+
+    res.json(buildReviewJobs(audit, savedJobs, feedback));
   } catch (error) {
     next(error);
   }
@@ -52,13 +179,102 @@ app.post('/api/jobs/mock', async (req, res, next) => {
   }
 });
 
+app.post('/api/jobs/review/:id/promote', async (req, res, next) => {
+  try {
+    const status = String(req.body?.status || 'saved').trim();
+    if (!['saved', 'applied', 'interview'].includes(status)) {
+      res.status(400).json({ error: `סטטוס לא תקין: ${status}` });
+      return;
+    }
+
+    const [audit, savedJobs, feedback] = await Promise.all([
+      readJson(SCAN_AUDIT_FILE, { jobs: [] }),
+      readJson(JOBS_FILE, []),
+      readJson(FEEDBACK_FILE, []),
+    ]);
+
+    const reviewJob = findReviewJobById(audit, savedJobs, feedback, req.params.id);
+    if (!reviewJob) {
+      res.status(404).json({ error: 'המשרה לבדיקה לא נמצאה או כבר טופלה' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const promotedJob = {
+      ...reviewJob,
+      id: createJobId(reviewJob),
+      status,
+      promotedFromReview: true,
+      updatedAt: now,
+      foundAt: reviewJob.foundAt || now,
+    };
+
+    const reviewKey = getReviewKey(promotedJob);
+    const existingIndex = savedJobs.findIndex(
+      (job) => job.id === promotedJob.id || getReviewKey(job) === reviewKey,
+    );
+
+    if (existingIndex >= 0) {
+      savedJobs[existingIndex] = {
+        ...savedJobs[existingIndex],
+        ...promotedJob,
+        status,
+        updatedAt: now,
+      };
+    } else {
+      savedJobs.push(promotedJob);
+    }
+
+    const merged = uniqueById(savedJobs);
+    await writeJson(JOBS_FILE, merged);
+    await appendFeedback(promotedJob, status, {
+      reviewKey,
+      fromManualReview: true,
+    });
+
+    res.json(promotedJob);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/jobs/review/:id/reject', async (req, res, next) => {
+  try {
+    const [audit, savedJobs, feedback] = await Promise.all([
+      readJson(SCAN_AUDIT_FILE, { jobs: [] }),
+      readJson(JOBS_FILE, []),
+      readJson(FEEDBACK_FILE, []),
+    ]);
+
+    const reviewJob = findReviewJobById(audit, savedJobs, feedback, req.params.id);
+    if (!reviewJob) {
+      res.status(404).json({ error: 'המשרה לבדיקה לא נמצאה או כבר טופלה' });
+      return;
+    }
+
+    await appendFeedback(
+      { ...reviewJob, id: reviewJob.id || createJobId(reviewJob) },
+      'deleted',
+      {
+        rejectionReason: req.body?.rejectionReason || req.body?.reason,
+        reviewKey: getReviewKey(reviewJob),
+        fromManualReview: true,
+      },
+    );
+
+    res.json({ ok: true, removed: 1 });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.patch('/api/jobs/:id', async (req, res, next) => {
   try {
     const jobs = await readJson(JOBS_FILE, []);
     const index = jobs.findIndex((job) => job.id === req.params.id);
 
     if (index === -1) {
-      res.status(404).json({ error: 'Job not found' });
+      res.status(404).json({ error: 'המשרה לא נמצאה' });
       return;
     }
 
@@ -68,7 +284,7 @@ app.patch('/api/jobs/:id', async (req, res, next) => {
     if ('status' in req.body) {
       const status = String(req.body.status || '').trim();
       if (!ALLOWED_STATUSES.has(status)) {
-        res.status(400).json({ error: `Invalid status: ${status}` });
+        res.status(400).json({ error: `סטטוס לא תקין: ${status}` });
         return;
       }
       patch.status = status;
@@ -79,7 +295,7 @@ app.patch('/api/jobs/:id', async (req, res, next) => {
     }
 
     if (Object.keys(patch).length === 0) {
-      res.status(400).json({ error: 'No supported fields to update' });
+      res.status(400).json({ error: 'לא נשלח שדה לעדכון' });
       return;
     }
 
@@ -105,20 +321,29 @@ app.patch('/api/jobs/:id', async (req, res, next) => {
 app.delete('/api/jobs/:id', async (req, res, next) => {
   try {
     const jobs = await readJson(JOBS_FILE, []);
-    const jobToDelete = jobs.find((job) => job.id === req.params.id);
+    const index = jobs.findIndex((job) => job.id === req.params.id);
 
-    if (!jobToDelete) {
-      res.status(404).json({ error: 'Job not found' });
+    if (index === -1) {
+      res.status(404).json({ error: 'המשרה לא נמצאה' });
       return;
     }
 
-    const filtered = jobs.filter((job) => job.id !== req.params.id);
-    await writeJson(JOBS_FILE, filtered);
-    await appendFeedback(jobToDelete, 'deleted', {
+    const now = new Date().toISOString();
+    const archivedJob = {
+      ...jobs[index],
+      status: 'archived',
+      archivedAt: now,
+      updatedAt: now,
+      archiveReason: req.body?.rejectionReason || req.body?.reason || 'other',
+    };
+
+    jobs[index] = archivedJob;
+    await writeJson(JOBS_FILE, uniqueById(jobs));
+    await appendFeedback(archivedJob, 'deleted', {
       rejectionReason: req.body?.rejectionReason || req.body?.reason,
     });
 
-    res.json({ ok: true, removed: 1 });
+    res.json({ ok: true, archived: 1, job: archivedJob });
   } catch (error) {
     next(error);
   }
@@ -148,11 +373,42 @@ app.get('/api/keywords', async (req, res, next) => {
   }
 });
 
+app.get('/api/role-profiles', async (req, res, next) => {
+  try {
+    res.json(await readJson(ROLE_PROFILES_FILE, []));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/sources', async (req, res, next) => {
+  try {
+    res.json(await readJson(SITE_SOURCES_FILE, []));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/scan-summary', async (req, res, next) => {
+  try {
+    const [audit, jobs, feedback, siteSources] = await Promise.all([
+      readJson(SCAN_AUDIT_FILE, {}),
+      readJson(JOBS_FILE, []),
+      readJson(FEEDBACK_FILE, []),
+      readJson(SITE_SOURCES_FILE, []),
+    ]);
+
+    res.json(buildScanSummary(audit, jobs, feedback, siteSources));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, req, res, next) => {
   console.error(error);
-  res.status(500).json({ error: error.message || 'Server error' });
+  res.status(500).json({ error: error.message || 'שגיאת שרת' });
 });
 
 app.listen(port, () => {
-  console.log(`Israel Job Finder server running on http://localhost:${port}`);
+  console.log(`שרת חיפוש המשרות פעיל: http://localhost:${port}`);
 });

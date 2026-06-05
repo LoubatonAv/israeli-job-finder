@@ -1,0 +1,156 @@
+[
+  {
+    "id": "fraud_analyst",
+    "name": "אנליסט הונאות",
+    "enabled": true,
+    "roleFamily": "analysis",
+    "roleType": "fraud_analyst",
+    "mainListMinScore": 58,
+    "scoreBonus": 34,
+    "queries": [
+      "אנליסט הונאות חיפה",
+      "Fraud Analyst חיפה",
+      "Fraud Analyst צפון",
+      "אנליסט מניעת הונאות חיפה"
+    ],
+    "positivePatterns": [
+      "אנליסט הונאות",
+      "הונאות",
+      "fraud analyst",
+      "fraud",
+      "risk monitoring",
+      "monitoring suspicious",
+      "חקירת עסקאות"
+    ],
+    "negativePatterns": [
+      "מכירות",
+      "שירות לקוחות",
+      "מוקד",
+      "טלפוני",
+      "manager",
+      "מנהל"
+    ]
+  },
+  {
+    "id": "risk_analyst",
+    "name": "אנליסט סיכונים",
+    "enabled": true,
+    "roleFamily": "analysis",
+    "roleType": "risk_analyst",
+    "mainListMinScore": 58,
+    "scoreBonus": 32,
+    "queries": [
+      "אנליסט סיכונים חיפה",
+      "Risk Analyst חיפה",
+      "Risk Analyst צפון"
+    ],
+    "positivePatterns": [
+      "אנליסט סיכונים",
+      "risk analyst",
+      "risk",
+      "סיכונים",
+      "בקרת סיכונים",
+      "ניתוח נתונים"
+    ],
+    "negativePatterns": [
+      "מכירות",
+      "שירות לקוחות",
+      "מוקד",
+      "טלפוני",
+      "manager",
+      "מנהל"
+    ]
+  },
+  {
+    "id": "data_analyst_junior",
+    "name": "דאטה אנליסט ג׳וניור",
+    "enabled": true,
+    "roleFamily": "analysis",
+    "roleType": "data_analyst_junior",
+    "mainListMinScore": 60,
+    "scoreBonus": 28,
+    "queries": [
+      "Data Analyst Junior חיפה",
+      "דאטה אנליסט ג׳וניור חיפה",
+      "אנליסט נתונים חיפה"
+    ],
+    "positivePatterns": [
+      "data analyst",
+      "דאטה אנליסט",
+      "אנליסט נתונים",
+      "sql",
+      "excel",
+      "power bi",
+      "bi"
+    ],
+    "negativePatterns": [
+      "senior",
+      "בכיר",
+      "מנהל",
+      "manager",
+      "data engineer",
+      "מהנדס נתונים"
+    ]
+  },
+  {
+    "id": "noc",
+    "name": "ניטור מערכות",
+    "enabled": true,
+    "roleFamily": "operations",
+    "roleType": "noc",
+    "mainListMinScore": 55,
+    "scoreBonus": 26,
+    "queries": [
+      "NOC חיפה",
+      "NOC צפון",
+      "ניטור מערכות חיפה"
+    ],
+    "positivePatterns": [
+      "noc",
+      "ניטור",
+      "monitoring",
+      "מערכות",
+      "support tier",
+      "תקלות"
+    ],
+    "negativePatterns": [
+      "משמרות לילה",
+      "לילות",
+      "שבת",
+      "24/7",
+      "מוקד מכירות"
+    ]
+  },
+  {
+    "id": "sap_implementer",
+    "name": "מיישם מערכות מידע",
+    "enabled": true,
+    "roleFamily": "information_systems",
+    "roleType": "sap_implementer",
+    "mainListMinScore": 55,
+    "scoreBonus": 24,
+    "queries": [
+      "מיישם SAP חיפה",
+      "מטמיע מערכות מידע חיפה",
+      "מיישם מערכות מידע חיפה",
+      "SAP Junior חיפה"
+    ],
+    "positivePatterns": [
+      "מיישם",
+      "יישום",
+      "מטמיע",
+      "הטמעה",
+      "sap",
+      "erp",
+      "מערכות מידע",
+      "crm"
+    ],
+    "negativePatterns": [
+      "ראש צוות",
+      "מנהל",
+      "בכיר",
+      "4 שנים",
+      "5 שנים"
+    ]
+  }
+]

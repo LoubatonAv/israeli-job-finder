@@ -1,26 +1,26 @@
 import { normalizeText } from './utils.js';
 
 const POSITIVE_WEIGHTS = {
-  saved: 6,
-  applied: 12,
-  interview: 16,
+  saved: 7,
+  applied: 14,
+  interview: 18,
 };
 
 const NEGATIVE_WEIGHTS = {
-  skipped: -10,
-  rejected: -8,
-  deleted: -12,
-  not_relevant: -14,
+  deleted: -14,
+  skipped: -12,
+  rejected: -10,
+  not_relevant: -16,
 };
 
 export const REJECTION_REASONS = {
   location: {
-    label: 'Location not relevant',
-    penalty: -14,
+    label: 'מיקום לא רלוונטי',
+    penalty: -18,
   },
   shifts: {
-    label: 'Shifts / nights / weekends',
-    penalty: -16,
+    label: 'משמרות / לילות / סופי שבוע',
+    penalty: -18,
     patterns: [
       /משמרות/i,
       /לילות/i,
@@ -32,11 +32,12 @@ export const REJECTION_REASONS = {
       /shift/i,
       /night/i,
       /weekend/i,
+      /24\/7/i,
     ],
   },
   phone: {
-    label: 'Too phone/customer-service heavy',
-    penalty: -16,
+    label: 'יותר מדי טלפוני / שירות לקוחות',
+    penalty: -18,
     patterns: [
       /טלפוני/i,
       /מוקד/i,
@@ -48,8 +49,8 @@ export const REJECTION_REASONS = {
     ],
   },
   senior: {
-    label: 'Too senior / management',
-    penalty: -18,
+    label: 'בכיר / ניהולי מדי',
+    penalty: -20,
     patterns: [
       /senior/i,
       /team\s*lead/i,
@@ -65,18 +66,19 @@ export const REJECTION_REASONS = {
     ],
   },
   wrong_role: {
-    label: 'Wrong role type',
-    penalty: -12,
+    label: 'סוג תפקיד לא מתאים',
+    penalty: -16,
   },
   other: {
-    label: 'Other reason',
-    penalty: -8,
+    label: 'סיבה אחרת',
+    penalty: -10,
   },
 };
 
 const STOP_WORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'this', 'that', 'role', 'job', 'jobs',
   'דרושים', 'משרה', 'תפקיד', 'עם', 'של', 'על', 'אל', 'או', 'גם', 'ללא', 'עבודה',
+  'דרוש', 'דרושה', 'דרוש/ה', 'חברה', 'לחברה', 'באזור', 'תחום', 'עבור', 'את',
 ]);
 
 function safeText(value = '') {
@@ -93,11 +95,17 @@ function getJobText(job = {}) {
     job.title,
     job.company,
     job.location,
+    job.locationKey,
     job.description,
     job.source,
     job.via,
     job.sourceQuery,
-  ].filter(Boolean).join(' ');
+    job.roleFamily,
+    job.roleType,
+    job.roleProfileName,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function hasPatternMatch(text, patterns = []) {
@@ -109,6 +117,10 @@ function isGenericLocation(location = '') {
   return !normalized || ['israel', 'ישראל', 'remote', 'hybrid', 'היברידי', 'מרחוק'].includes(normalized);
 }
 
+function sameNormalized(a = '', b = '') {
+  return Boolean(a && b && normalizeText(a) === normalizeText(b));
+}
+
 export function tokenizeJob(job = {}) {
   const text = safeText(getJobText(job));
 
@@ -118,7 +130,7 @@ export function tokenizeJob(job = {}) {
       .map((token) => token.trim())
       .filter((token) => token.length >= 3)
       .filter((token) => !STOP_WORDS.has(token))
-      .slice(0, 120),
+      .slice(0, 160),
   );
 }
 
@@ -142,9 +154,17 @@ function makeFeedbackSnapshot(job, action, metadata = {}) {
     title: job.title || '',
     company: job.company || '',
     location: job.location || '',
+    locationKey: job.locationKey || '',
     source: job.source || job.via || '',
     sourceQuery: job.sourceQuery || '',
-    description: String(job.description || '').slice(0, 600),
+    roleFamily: job.roleFamily || '',
+    roleType: job.roleType || '',
+    roleProfileId: job.roleProfileId || '',
+    roleProfileName: job.roleProfileName || '',
+    fitScore: job.fitScore ?? null,
+    description: String(job.description || '').slice(0, 900),
+    reviewKey: metadata.reviewKey || job.reviewKey || '',
+    fromManualReview: Boolean(metadata.fromManualReview || job.fromManualReview),
     createdAt: new Date().toISOString(),
   };
 }
@@ -167,36 +187,64 @@ function getReasonAdjustment(job, feedbackItem) {
   if (config.patterns?.length && hasPatternMatch(text, config.patterns)) {
     return {
       adjustment: config.penalty,
-      warning: `Learning penalty: you rejected similar ${config.label.toLowerCase()} jobs before (${config.penalty}).`,
+      warning: `למידה: בעבר פסלת משרות עם מאפיין דומה — ${config.label}.`,
     };
   }
 
   if (reason === 'location') {
-    const rejectedLocation = normalizeText(feedbackItem.location || '');
-    const currentLocation = normalizeText(job.location || '');
+    const sameLocationKey = sameNormalized(feedbackItem.locationKey, job.locationKey);
+    const sameLocation = sameNormalized(feedbackItem.location, job.location);
 
-    if (rejectedLocation && currentLocation && rejectedLocation === currentLocation && !isGenericLocation(currentLocation)) {
+    if ((sameLocationKey || sameLocation) && !isGenericLocation(job.location)) {
       return {
         adjustment: config.penalty,
-        warning: `Learning penalty: you rejected this location before (${job.location}).`,
+        warning: `למידה: בעבר פסלת מיקום דומה (${job.location}).`,
       };
     }
   }
 
   if (reason === 'wrong_role') {
-    const currentTitleTokens = tokenizeJob({ title: job.title, sourceQuery: job.sourceQuery });
-    const rejectedTitleTokens = tokenizeJob({ title: feedbackItem.title, sourceQuery: feedbackItem.sourceQuery });
+    const currentTitleTokens = tokenizeJob({
+      title: job.title,
+      sourceQuery: job.sourceQuery,
+      roleFamily: job.roleFamily,
+      roleType: job.roleType,
+      roleProfileName: job.roleProfileName,
+    });
+    const rejectedTitleTokens = tokenizeJob({
+      title: feedbackItem.title,
+      sourceQuery: feedbackItem.sourceQuery,
+      roleFamily: feedbackItem.roleFamily,
+      roleType: feedbackItem.roleType,
+      roleProfileName: feedbackItem.roleProfileName,
+    });
     const overlap = tokenOverlapScore(currentTitleTokens, rejectedTitleTokens);
 
-    if (overlap >= 2) {
+    if (overlap >= 2 || sameNormalized(feedbackItem.roleType, job.roleType)) {
       return {
         adjustment: config.penalty,
-        warning: `Learning penalty: you rejected similar role titles before (${config.penalty}).`,
+        warning: 'למידה: בעבר פסלת תפקיד דומה.',
       };
     }
   }
 
   return null;
+}
+
+function getDirectSimilarityAdjustment(job, item) {
+  const weight = POSITIVE_WEIGHTS[item.action] ?? NEGATIVE_WEIGHTS[item.action] ?? 0;
+  if (!weight) return 0;
+
+  let multiplier = 0;
+
+  if (sameNormalized(item.company, job.company) && item.company) multiplier += 0.5;
+  if (sameNormalized(item.locationKey, job.locationKey) && job.locationKey) multiplier += 0.45;
+  if (sameNormalized(item.roleType, job.roleType) && job.roleType) multiplier += 0.55;
+  if (sameNormalized(item.roleProfileId, job.roleProfileId) && job.roleProfileId) multiplier += 0.65;
+  if (sameNormalized(item.source, job.source || job.via) && item.source) multiplier += 0.25;
+
+  if (multiplier === 0) return 0;
+  return weight * Math.min(1.2, multiplier);
 }
 
 export function getLearningAdjustment(job, feedback = []) {
@@ -209,7 +257,7 @@ export function getLearningAdjustment(job, feedback = []) {
   const warnings = [];
   let adjustment = 0;
 
-  for (const item of feedback.slice(-250)) {
+  for (const item of feedback.slice(-400)) {
     if (!item || item.jobId === job.id) continue;
 
     const reasonAdjustment = getReasonAdjustment(job, item);
@@ -219,6 +267,11 @@ export function getLearningAdjustment(job, feedback = []) {
       continue;
     }
 
+    const directAdjustment = getDirectSimilarityAdjustment(job, item);
+    if (directAdjustment) {
+      adjustment += directAdjustment;
+    }
+
     const weight = POSITIVE_WEIGHTS[item.action] ?? NEGATIVE_WEIGHTS[item.action] ?? 0;
     if (!weight) continue;
 
@@ -226,27 +279,27 @@ export function getLearningAdjustment(job, feedback = []) {
     const overlap = tokenOverlapScore(jobTokens, feedbackTokens);
     if (overlap < 2) continue;
 
-    const sameLocation = item.location && job.location && normalizeText(item.location) === normalizeText(job.location);
-    const sameSource = item.source && (job.source || job.via) && normalizeText(item.source) === normalizeText(job.source || job.via);
+    const sameLocation = item.location && job.location && sameNormalized(item.location, job.location);
+    const sameSource = item.source && (job.source || job.via) && sameNormalized(item.source, job.source || job.via);
 
-    let localAdjustment = Math.min(Math.abs(weight), overlap * 1.5);
-    if (sameLocation && !isGenericLocation(job.location)) localAdjustment += 1.5;
+    let localAdjustment = Math.min(Math.abs(weight), overlap * 1.4);
+    if (sameLocation && !isGenericLocation(job.location)) localAdjustment += 2;
     if (sameSource) localAdjustment += 1;
 
     adjustment += weight > 0 ? localAdjustment : -localAdjustment;
   }
 
-  adjustment = Math.max(-24, Math.min(18, Math.round(adjustment)));
+  adjustment = Math.max(-32, Math.min(22, Math.round(adjustment)));
 
   if (adjustment >= 4) {
-    reasons.push(`Learning boost: similar jobs were saved/applied before (+${adjustment}).`);
+    reasons.push(`למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+${adjustment}).`);
   } else if (adjustment <= -4) {
-    warnings.push(`Learning penalty: similar jobs were rejected before (${adjustment}).`);
+    warnings.push(`למידה: משרות דומות נדחו בעבר (${adjustment}).`);
   }
 
   return {
     adjustment,
     reasons: [...new Set(reasons)].slice(0, 3),
-    warnings: [...new Set(warnings)].slice(0, 5),
+    warnings: [...new Set(warnings)].slice(0, 6),
   };
 }

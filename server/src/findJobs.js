@@ -1,8 +1,10 @@
-﻿import {
+import {
   FEEDBACK_FILE,
   JOBS_FILE,
   KEYWORDS_FILE,
   PROFILE_FILE,
+  SCAN_AUDIT_FILE,
+  SITE_SOURCES_FILE,
 } from "./paths.js";
 import { readJson, writeJson } from "./fileStore.js";
 import { createJobId, getBestApplyLink, uniqueById } from "./utils.js";
@@ -13,8 +15,10 @@ import { searchDrushim } from "./drushimCrawler.js";
 import { searchJobMaster } from "./jobmasterCrawler.js";
 import { searchAllJobs } from "./alljobsCrawler.js";
 import { searchMatrix } from "./matrixCrawler.js";
+import { searchSiteSources } from "./siteSourcesCrawler.js";
 import { enrichJob } from "./enrichJob.js";
 import { shouldSkipBadJob } from "./jobGuards.js";
+import { getRoleProfiles } from "./roleProfiles.js";
 
 const scanStats = {};
 
@@ -27,7 +31,6 @@ const DEBUG_JOB_LIMIT = Number.parseInt(
   process.env.DEBUG_JOB_LIMIT || "10",
   10,
 );
-const SCAN_AUDIT_FILE = JOBS_FILE.replace(/jobs\.json$/i, "scan-audit.json");
 
 function limitDebugJobs(jobs) {
   if (!DEBUG_JOBS) return jobs;
@@ -86,6 +89,17 @@ function hasJunkBusinessModel(job = {}) {
     .toLowerCase();
 
   return /תיירות|חופשות|נופש|סוכני(?:\/ות)?\s*תיירות|רווחים\s*גבוהים|הכנסה\s*גבוהה|פנה(?:\/י)?\s*ללא\s*קו[״"]?ח/i.test(
+    text,
+  );
+}
+
+function hasAdminOrNonSoftwareNoise(job = {}) {
+  const text = [job.title, job.company, job.description]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /פקיד|פקידת|בק\s*אופיס|back\s*office|לוגיסטיקה|מעבדה|פארמה|אצוות|מחסן|אדמיניסטרציה/i.test(
     text,
   );
 }
@@ -234,6 +248,9 @@ function isUsableJob(job = {}) {
   if (roleFamily === "irrelevant") return false;
   if (job.isRelevantRole === false) return false;
   if (hasJunkBusinessModel(job)) return false;
+  if (hasAdminOrNonSoftwareNoise(job)) return false;
+
+  const dynamicMinScore = Number(job.mainListMinScore || 55);
 
   if (source === "AllJobs") {
     if (!/JobID=\d+/i.test(url)) return false;
@@ -247,6 +264,10 @@ function isUsableJob(job = {}) {
 
     if (hasBadSeniorityForMainList(job)) return false;
 
+    if (job.roleProfileId) {
+      return score >= Math.max(55, dynamicMinScore);
+    }
+
     if (roleFamily === "qa" || roleFamily === "automation") {
       return score >= 50;
     }
@@ -259,7 +280,16 @@ function isUsableJob(job = {}) {
       return score >= 70;
     }
 
+    if (roleFamily === "analysis" || roleFamily === "operations") {
+      return score >= 60;
+    }
+
     return false;
+  }
+
+  if (job.roleProfileId) {
+    if (hasBadSeniorityForMainList(job)) return false;
+    return score >= dynamicMinScore;
   }
 
   if (roleFamily === "qa" || roleFamily === "automation") {
@@ -277,9 +307,13 @@ function isUsableJob(job = {}) {
     return score >= 60;
   }
 
+  if (roleFamily === "analysis" || roleFamily === "operations") {
+    if (hasBadSeniorityForMainList(job)) return false;
+    return score >= 55;
+  }
+
   return score >= 70;
 }
-
 function getAuditDecision(job = {}, keptKeys = new Set(), keptIds = new Set()) {
   if (keptKeys.has(getStableJobKey(job)) || keptIds.has(job.id)) {
     return "kept_duplicate_or_saved";
@@ -336,6 +370,8 @@ function buildScanAudit({
         url: job.url,
         roleFamily: job.roleFamily,
         roleType: job.roleType,
+        roleProfileId: job.roleProfileId,
+        roleProfileName: job.roleProfileName,
         seniority: job.seniority,
         isRelevantRole: job.isRelevantRole,
         fitScore: job.fitScore,
@@ -546,6 +582,24 @@ function normalizeMatrixJob(result, sourceQuery) {
   return finalizeNormalizedJob(job);
 }
 
+function normalizeSiteSourceJob(result, sourceQuery) {
+  const job = {
+    title: result.title || "Untitled job",
+    company: result.company || result.sourceName || "אתר מקור",
+    location: result.location || "Israel",
+    description: result.description || "",
+    via: result.via || result.sourceName || "אתרי מקור",
+    source: result.sourceName || "אתרי מקור",
+    sourceQuery: result.originalQuery || sourceQuery,
+    url: result.link,
+    jobIdFromSource: result.jobIdFromSource || result.link || "",
+    foundAt: new Date().toISOString(),
+    status: "found",
+  };
+
+  return finalizeNormalizedJob(job);
+}
+
 function normalizeOrganicJob(result, sourceQuery) {
   const job = {
     title: result.title || "Untitled job",
@@ -611,6 +665,7 @@ function getSearchProviders() {
       "jobmaster",
       "alljobs",
       "matrix",
+      "sites",
       "serpapi",
     ];
   }
@@ -652,11 +707,12 @@ async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
 export async function findJobs({ useMock = false } = {}) {
   resetScanStats();
 
-  const [profile, keywords, existingJobs, feedback] = await Promise.all([
+  const [profile, keywords, existingJobs, feedback, siteSources] = await Promise.all([
     readJson(PROFILE_FILE, {}),
     readJson(KEYWORDS_FILE, {}),
     readJson(JOBS_FILE, []),
     readJson(FEEDBACK_FILE, []),
+    readJson(SITE_SOURCES_FILE, []),
   ]);
 
   let incomingJobs = [];
@@ -680,10 +736,12 @@ export async function findJobs({ useMock = false } = {}) {
       );
     }
 
+    const roleProfileQueries = getRoleProfiles().flatMap((profile) => profile.queries || []);
     const allQueries = [
       ...(keywords.queries || []),
       ...(keywords.siteQueries || []),
-    ];
+      ...roleProfileQueries,
+    ].filter(Boolean);
 
     for (const query of allQueries) {
       // Playwright
@@ -791,13 +849,8 @@ export async function findJobs({ useMock = false } = {}) {
           });
         } catch (error) {
           addProviderStats("JobMaster", { errors: 1 });
-
           console.warn(`Skipped JobMaster query "${query}": ${error.message}`);
-
-          if (DEBUG_JOBS) {
-            console.warn("JobMaster debug error details:");
-            console.warn(error.stack || error);
-          }
+          console.warn(error.stack || error);
         }
       }
 
@@ -870,6 +923,43 @@ export async function findJobs({ useMock = false } = {}) {
         } catch (error) {
           addProviderStats("Matrix", { errors: 1 });
           console.warn(`Skipped Matrix query "${query}": ${error.message}`);
+          console.warn(error.stack || error);
+        }
+      }
+
+      // Site sources via Google/Playwright
+      if (usesProvider(searchProviders, "sites") || usesProvider(searchProviders, "site_sources")) {
+        try {
+          console.log(`Searching extra site sources: "${query}"`);
+
+          const results = await searchSiteSources({ query, siteSources });
+          addProviderStats("SiteSources", { raw: results.length });
+
+          const normalizedJobs = results
+            .filter((result) => result.link && result.title)
+            .map((result) => normalizeSiteSourceJob(result, query))
+            .filter((job) => job.status !== "skipped");
+
+          addProviderStats("SiteSources", { normalized: normalizedJobs.length });
+
+          incomingJobs.push(...normalizedJobs);
+
+          const scoredPartialJobs = normalizedJobs.map((job) => ({
+            ...job,
+            ...scoreJob(job, profile, keywords, feedback),
+          }));
+
+          addProviderStats("SiteSources", { scored: scoredPartialJobs.length });
+
+          const currentJobs = await readJson(JOBS_FILE, []);
+
+          await savePartialJobs({
+            currentJobs,
+            scoredPartialJobs,
+          });
+        } catch (error) {
+          addProviderStats("SiteSources", { errors: 1 });
+          console.warn(`Skipped site sources query "${query}": ${error.message}`);
           console.warn(error.stack || error);
         }
       }

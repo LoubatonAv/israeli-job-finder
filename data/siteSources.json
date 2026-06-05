@@ -1,0 +1,65 @@
+[
+  {
+    "id": "jobnet",
+    "name": "ג׳ובנט",
+    "domain": "jobnet.co.il",
+    "description": "חיפוש ממוקד דרך Google בתוך Jobnet",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/companies", "/article", "/career"]
+  },
+  {
+    "id": "nisha",
+    "name": "נישה",
+    "domain": "nisha.co.il",
+    "description": "משרות הייטק ותוכנה דרך Google",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/blog", "/article", "/candidate"]
+  },
+  {
+    "id": "gotfriends",
+    "name": "GotFriends",
+    "domain": "gotfriends.co.il",
+    "description": "משרות הייטק דרך Google",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/blog", "/salary", "/companies"]
+  },
+  {
+    "id": "sqlink",
+    "name": "SQLINK",
+    "domain": "sqlink.com",
+    "description": "משרות טכנולוגיה דרך Google",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/blog", "/articles"]
+  },
+  {
+    "id": "ethosia",
+    "name": "אתוסיה",
+    "domain": "ethosia.co.il",
+    "description": "משרות הייטק דרך Google",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/article", "/salary", "/blog"]
+  },
+  {
+    "id": "dialog",
+    "name": "דיאלוג",
+    "domain": "dialog.co.il",
+    "description": "משרות טכנולוגיה דרך Google",
+    "enabled": true,
+    "extraQuery": "דרושים",
+    "blockedPathPatterns": ["/article", "/blog"]
+  },
+  {
+    "id": "linkedin",
+    "name": "LinkedIn",
+    "domain": "linkedin.com",
+    "description": "כבוי כברירת מחדל כי הוא איטי ורועש יותר",
+    "enabled": false,
+    "extraQuery": "jobs israel",
+    "blockedPathPatterns": ["/pulse", "/posts", "/company"]
+  }
+]

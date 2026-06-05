@@ -1,5 +1,6 @@
 import { normalizeText } from "./utils.js";
 import { getLearningAdjustment } from "./learning.js";
+import { getRoleProfileById } from "./roleProfiles.js";
 
 const HARD_EXCLUDE_REGEX = [
   /(?:^|\s)שירות(?:\s+לקוחות)?(?:\s|$|–|-)/i,
@@ -21,6 +22,8 @@ const GOOD_LOCATION_KEYS = new Set([
   "acre",
   "north",
   "remote",
+  "nesher",
+  "tirat_carmel",
 ]);
 
 const BAD_LOCATION_KEYS = new Set([
@@ -35,6 +38,8 @@ const BAD_LOCATION_KEYS = new Set([
   "netanya",
   "petah_tikva",
   "raanana",
+  "ramat_gan",
+  "hod_hasharon",
 ]);
 
 function findRegexMatches(text, regexList = []) {
@@ -53,7 +58,6 @@ function findMatches(text, words = []) {
       if (!word) return false;
 
       const clean = word.replace(/[^\p{L}\p{N}+#.-]/gu, "");
-
       const isAsciiOnly = /^[a-z0-9\s.+#-]+$/i.test(clean);
       if (isAsciiOnly && clean.length < 3) return false;
 
@@ -76,6 +80,10 @@ function addUnique(items, value) {
   }
 }
 
+function hasAdminOrNonSoftwareNoise(text = "") {
+  return /פקיד|פקידת|בק\s*אופיס|back\s*office|לוגיסטיקה|מעבדה|פארמה|אצוות|מחסן|אדמיניסטרציה/i.test(text);
+}
+
 export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
   const text = [job.title, job.company, job.location, job.description, job.via]
     .filter(Boolean)
@@ -92,7 +100,7 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
       recommendation: "skip",
       status: "skipped",
       reasons: [],
-      warnings: [`נפסל אוטומטית: שירות לקוחות / טלפוני / מכירות / משמרות.`],
+      warnings: ["נפסל אוטומטית: שירות לקוחות / טלפוני / מכירות / משמרות."],
     };
   }
 
@@ -110,6 +118,13 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
   }
 
   let score = 20;
+  const roleProfile = job.roleProfileId ? getRoleProfileById(job.roleProfileId) : null;
+
+  if (job.roleProfileId) {
+    const bonus = Number(job.roleProfileScoreBonus || roleProfile?.scoreBonus || 26);
+    score += bonus;
+    addUnique(reasons, `זוהה תפקיד יעד: ${job.roleProfileName || roleProfile?.name || "תפקיד שהוגדר במערכת"}.`);
+  }
 
   if (job.roleFamily === "qa") {
     score += 38;
@@ -119,7 +134,16 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     addUnique(reasons, "זוהה תפקיד מערכות מידע / הטמעה.");
   } else if (job.roleFamily === "information") {
     score += 16;
-    addUnique(reasons, "תפקיד מידע / בק אופיס / מסמכים — כיוון משני אפשרי.");
+    addUnique(reasons, "תפקיד מידע / מסמכים — כיוון משני אפשרי.");
+  } else if (job.roleFamily === "analysis") {
+    score += 28;
+    addUnique(reasons, "זוהה תפקיד אנליטי מתאים.");
+  } else if (job.roleFamily === "operations") {
+    score += 22;
+    addUnique(reasons, "זוהה תפקיד תפעולי־טכני מתאים.");
+  } else if (job.isRelevantRole === true) {
+    score += 18;
+    addUnique(reasons, "זוהה תפקיד רלוונטי לפי פרופיל מותאם.");
   } else {
     score -= 25;
     warnings.push("לא זוהה תפקיד יעד ברור.");
@@ -135,9 +159,9 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     addUnique(reasons, "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.");
   }
 
-  if (job.roleType === "qa_sap") {
+  if (job.roleType === "qa_sap" || job.roleType === "sap_implementer") {
     score += 4;
-    addUnique(reasons, "QA על SAP — עשוי להיות רלוונטי אם לא בכיר מדי.");
+    addUnique(reasons, "SAP / ERP — עשוי להיות רלוונטי אם לא בכיר מדי.");
   }
 
   if (job.seniority === "junior" || job.hasNoExperienceSignal) {
@@ -165,8 +189,13 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     score -= 22;
     warnings.push(`מיקום פחות מתאים: ${job.location}.`);
   } else if (!job.locationKey) {
-    score -= 8;
+    score -= 10;
     warnings.push("המיקום לא זוהה בוודאות.");
+  }
+
+  if (hasAdminOrNonSoftwareNoise(text)) {
+    score -= 28;
+    warnings.push("נראה כמו אדמיניסטרציה / לוגיסטיקה / מעבדה ולא תפקיד תוכנה ברור.");
   }
 
   const targetMatches = findMatches(text, profile.targetRoles || []);
@@ -210,8 +239,8 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     fitScore: score,
     recommendation,
     reasons: reasons.length
-      ? reasons
+      ? [...new Set(reasons)].slice(0, 8)
       : ["התאמה כללית, אבל חסרים סימנים חזקים."],
-    warnings,
+    warnings: [...new Set(warnings)].slice(0, 8),
   };
 }
