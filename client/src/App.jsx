@@ -14,6 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import JobCard from "./components/JobCard.jsx";
+import GmailJobsPanel from "./components/GmailJobsPanel.jsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "./lib/api.js";
 
 const DAILY_GOAL = 5;
@@ -21,6 +22,7 @@ const DAILY_GOAL = 5;
 const tabs = [
   { value: "main", label: "לטיפול" },
   { value: "review", label: "לבדיקה ידנית" },
+  { value: "gmail", label: "מיילים מ-Gmail" },
   { value: "saved", label: "שמורות" },
   { value: "applied", label: "נשלחו" },
   { value: "archive", label: "ארכיון" },
@@ -125,6 +127,8 @@ function EmptyState({ activeTab, onScan, loading }) {
   const copy =
     activeTab === "applied"
       ? "עדיין אין משרות שסומנו כנשלחו."
+      : activeTab === "gmail"
+        ? "עדיין לא יובאו מיילים מ-Gmail."
       : activeTab === "archive"
         ? "עדיין אין משרות בארכיון. משרות שתסיר יופיעו כאן ולא יעמיסו על הרשימות הפעילות."
         : activeTab === "saved"
@@ -299,6 +303,7 @@ export default function App() {
   const reachedDailyGoal = stats.appliedToday >= DAILY_GOAL;
 
   const activeJobs = useMemo(() => {
+    if (activeTab === "gmail") return [];
     if (activeTab === "review") return reviewJobs;
     if (activeTab === "saved") return jobs.filter((job) => job.status === "saved");
     if (activeTab === "applied") return jobs.filter(isAppliedJob);
@@ -496,9 +501,11 @@ export default function App() {
           <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-4">
             {tabs.map((tab) => {
               const count =
-                tab.value === "review"
-                  ? stats.reviewQueue
-                  : tab.value === "saved"
+                tab.value === "gmail"
+                  ? ""
+                  : tab.value === "review"
+                    ? stats.reviewQueue
+                    : tab.value === "saved"
                     ? stats.saved
                     : tab.value === "applied"
                       ? stats.applied
@@ -520,6 +527,7 @@ export default function App() {
             })}
           </div>
 
+          {activeTab !== "gmail" && (
           <div className="mt-4 grid gap-3 xl:grid-cols-[1.4fr_repeat(5,1fr)_auto] xl:items-end">
             <label className="block">
               <span className="mb-1.5 block text-xs font-extrabold text-slate-500">חיפוש</span>
@@ -579,8 +587,14 @@ export default function App() {
               <Filter size={17} /> נקה
             </button>
           </div>
+          )}
         </section>
 
+        {activeTab === "gmail" ? (
+          <section className="mt-6">
+            <GmailJobsPanel onMessage={setMessage} onError={setError} />
+          </section>
+        ) : (
         <section className="mt-6">
           <div className="mb-4 flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -616,6 +630,7 @@ export default function App() {
             <EmptyState activeTab={activeTab} onScan={runFinder} loading={loading} />
           )}
         </section>
+        )}
       </div>
     </main>
   );

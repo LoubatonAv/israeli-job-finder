@@ -15,3 +15,6 @@ export const ROLE_PROFILES_FILE = path.join(DATA_DIR, 'roleProfiles.json');
 export const SCAN_AUDIT_FILE = path.join(DATA_DIR, 'scan-audit.json');
 
 export const SITE_SOURCES_FILE = path.join(DATA_DIR, 'siteSources.json');
+
+export const GMAIL_TOKENS_FILE = path.join(DATA_DIR, 'gmail-tokens.json');
+export const GMAIL_IMPORTS_FILE = path.join(DATA_DIR, 'gmail-imports.json');

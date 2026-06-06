@@ -1,33 +1,145 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import readline from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
+import fs from "node:fs/promises";
+import path from "node:path";
+import readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 
 const rootDir = process.cwd();
-const roleProfilesPath = path.join(rootDir, 'data', 'roleProfiles.json');
-const keywordsPath = path.join(rootDir, 'data', 'keywords.json');
+const roleProfilesPath = path.join(rootDir, "data", "roleProfiles.json");
+const keywordsPath = path.join(rootDir, "data", "keywords.json");
 
-function slugify(value = '') {
+const PRESETS = {
+  "frontend-junior": {
+    id: "frontend_junior",
+    name: "Front End Junior",
+    enabled: true,
+    roleFamily: "frontend",
+    roleType: "frontend_junior",
+    mainListMinScore: 70,
+    scoreBonus: 26,
+    queries: [
+      "frontend junior חיפה",
+      "front end junior חיפה",
+      "front-end junior חיפה",
+      "react junior חיפה",
+      "vue junior חיפה",
+      "javascript junior חיפה",
+      "typescript junior חיפה",
+      "מפתח פרונט חיפה",
+      "מפתח frontend חיפה",
+      "מפתח react חיפה",
+      "מפתח vue חיפה",
+      "frontend junior יקנעם",
+      "react junior יקנעם",
+      "frontend junior קריות",
+      "מפתח פרונט צפון",
+      "junior frontend remote",
+      "react junior remote",
+    ],
+    positivePatterns: [
+      "frontend",
+      "front end",
+      "front-end",
+      "react",
+      "vue",
+      "javascript",
+      "typescript",
+      "ui developer",
+      "מפתח פרונט",
+      "מפתח frontend",
+      "מפתח react",
+      "מפתח vue",
+      "ג׳וניור",
+      "ג'וניור",
+      "junior",
+      "ללא ניסיון",
+      "ללא נסיון",
+    ],
+    negativePatterns: [
+      "senior",
+      "lead",
+      "principal",
+      "architect",
+      "manager",
+      "team lead",
+      "full stack",
+      "fullstack",
+      "backend",
+      "back end",
+      "java",
+      ".net",
+      "c#",
+      "node",
+      "ראש צוות",
+      "בכיר",
+      "מנהל",
+      "5 שנים",
+      "4 שנים",
+      "3 שנים",
+      "תל אביב",
+      "רמת גן",
+      "פתח תקווה",
+      "הרצליה",
+      "רעננה",
+      "כפר סבא",
+      "מרכז",
+    ],
+  },
+};
+
+function parseArgs(argv = []) {
+  const result = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const item = argv[index];
+
+    if (!item.startsWith("--")) continue;
+
+    const key = item.slice(2);
+    const next = argv[index + 1];
+
+    if (!next || next.startsWith("--")) {
+      result[key] = true;
+      continue;
+    }
+
+    result[key] = next;
+    index += 1;
+  }
+
+  return result;
+}
+
+function slugify(value = "") {
   const fallback = `role_${Date.now()}`;
-  const slug = String(value || '')
+
+  const slug = String(value || "")
     .toLowerCase()
     .trim()
-    .replace(/[\s/\\]+/g, '_')
-    .replace(/[^a-z0-9_א-ת-]/gi, '')
-    .replace(/^_+|_+$/g, '');
+    .replace(/[\s/\\]+/g, "_")
+    .replace(/[^a-z0-9_א-ת-]/gi, "")
+    .replace(/^_+|_+$/g, "");
+
   return slug || fallback;
 }
 
-function splitList(value = '') {
-  return String(value || '')
-    .split(',')
+function splitList(value = "") {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
+function mergeUnique(existing = [], added = []) {
+  return [...new Set([...existing, ...added].filter(Boolean))];
+}
+
 async function readJson(filePath, fallback) {
   try {
-    return JSON.parse(await fs.readFile(filePath, 'utf8'));
+    return JSON.parse(await fs.readFile(filePath, "utf8"));
   } catch {
     return fallback;
   }
@@ -35,68 +147,218 @@ async function readJson(filePath, fallback) {
 
 async function writeJson(filePath, value) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-const rl = readline.createInterface({ input, output });
-
-try {
-  console.log('הוספת תפקיד חדש למערכת');
-  console.log('אפשר להשאיר שדות ריקים ולקבל ברירת מחדל.');
-
-  const name = (await rl.question('שם התפקיד בעברית: ')).trim();
-  if (!name) throw new Error('חייבים להזין שם תפקיד.');
-
-  const idAnswer = (await rl.question(`מזהה פנימי (${slugify(name)}): `)).trim();
-  const id = slugify(idAnswer || name);
-
-  const family = (await rl.question('משפחה: qa / analysis / information_systems / operations / custom (ברירת מחדל custom): ')).trim() || 'custom';
-  const type = (await rl.question(`סוג תפקיד פנימי (${id}): `)).trim() || id;
-  const minScoreAnswer = (await rl.question('ציון מינימלי לרשימה הראשית (ברירת מחדל 58): ')).trim();
-  const mainListMinScore = Number(minScoreAnswer || 58);
-
-  const queryText = await rl.question('שאילתות חיפוש, מופרדות בפסיקים: ');
-  const positiveText = await rl.question('מילים/ביטויים שמזהים את התפקיד, מופרדים בפסיקים: ');
-  const negativeText = await rl.question('מילים שפוסלות או מחלישות, מופרדות בפסיקים: ');
-
-  const queries = splitList(queryText);
-  const positivePatterns = splitList(positiveText);
-  const negativePatterns = splitList(negativeText);
-
-  if (!queries.length) {
-    queries.push(`${name} חיפה`, `${name} צפון`);
-  }
-
-  if (!positivePatterns.length) {
-    positivePatterns.push(name);
-  }
-
+async function saveRoleProfile(profile) {
   const roleProfiles = await readJson(roleProfilesPath, []);
-  const filteredProfiles = roleProfiles.filter((profile) => profile.id !== id);
+  const filteredProfiles = roleProfiles.filter(
+    (item) => item.id !== profile.id,
+  );
 
   filteredProfiles.push({
-    id,
-    name,
-    enabled: true,
-    roleFamily: family,
-    roleType: type,
-    mainListMinScore: Number.isFinite(mainListMinScore) ? mainListMinScore : 58,
-    scoreBonus: 28,
-    queries,
-    positivePatterns,
-    negativePatterns,
+    id: profile.id,
+    name: profile.name,
+    enabled: profile.enabled ?? true,
+    roleFamily: profile.roleFamily || "custom",
+    roleType: profile.roleType || profile.id,
+    mainListMinScore: Number.isFinite(Number(profile.mainListMinScore))
+      ? Number(profile.mainListMinScore)
+      : 58,
+    scoreBonus: Number.isFinite(Number(profile.scoreBonus))
+      ? Number(profile.scoreBonus)
+      : 28,
+    queries: splitList(profile.queries),
+    positivePatterns: splitList(profile.positivePatterns),
+    negativePatterns: splitList(profile.negativePatterns),
   });
 
   await writeJson(roleProfilesPath, filteredProfiles);
 
   const keywords = await readJson(keywordsPath, { queries: [], exclude: [] });
-  const querySet = new Set([...(keywords.queries || []), ...queries]);
-  keywords.queries = [...querySet];
-  await writeJson(keywordsPath, keywords);
+  keywords.queries = mergeUnique(
+    keywords.queries || [],
+    splitList(profile.queries),
+  );
 
-  console.log('התפקיד נוסף בהצלחה.');
-  console.log(`נוסף/עודכן: ${name} (${id})`);
-  console.log('בסריקה הבאה המערכת תחפש ותדרג גם את התפקיד הזה.');
-} finally {
-  rl.close();
+  if (!Array.isArray(keywords.exclude)) {
+    keywords.exclude = [];
+  }
+
+  await writeJson(keywordsPath, keywords);
 }
+
+function applyCliOverrides(baseProfile, args) {
+  const profile = { ...baseProfile };
+
+  if (args.id) profile.id = slugify(args.id);
+  if (args.name) profile.name = args.name;
+  if (args.family) profile.roleFamily = args.family;
+  if (args.type) profile.roleType = args.type;
+  if (args["min-score"]) profile.mainListMinScore = Number(args["min-score"]);
+  if (args.bonus) profile.scoreBonus = Number(args.bonus);
+  if (args.queries) profile.queries = splitList(args.queries);
+  if (args.positive) profile.positivePatterns = splitList(args.positive);
+  if (args.negative) profile.negativePatterns = splitList(args.negative);
+
+  return profile;
+}
+
+async function askInteractiveProfile() {
+  const rl = readline.createInterface({ input, output });
+
+  try {
+    console.log("Add a new role to the job finder");
+    console.log("Tip: You can leave optional fields empty and use defaults.");
+    console.log("");
+
+    const name = (await rl.question("Display name: ")).trim();
+
+    if (!name) {
+      throw new Error("Display name is required.");
+    }
+
+    const idDefault = slugify(name);
+    const idAnswer = (
+      await rl.question(`Internal role id (${idDefault}): `)
+    ).trim();
+    const id = slugify(idAnswer || idDefault);
+
+    const family =
+      (
+        await rl.question(
+          "Role family: qa / analysis / information_systems / operations / frontend / custom (default custom): ",
+        )
+      ).trim() || "custom";
+
+    const type =
+      (await rl.question(`Internal role type (${id}): `)).trim() || id;
+
+    const minScoreAnswer = (
+      await rl.question("Minimum score for main list (default 58): ")
+    ).trim();
+
+    const scoreBonusAnswer = (
+      await rl.question("Score bonus when role matches (default 28): ")
+    ).trim();
+
+    console.log("");
+    console.log("Use comma-separated values.");
+    console.log("");
+
+    const queryText = await rl.question("Search queries: ");
+    const positiveText = await rl.question("Positive role keywords/patterns: ");
+    const negativeText = await rl.question("Negative keywords/patterns: ");
+
+    const queries = splitList(queryText);
+    const positivePatterns = splitList(positiveText);
+    const negativePatterns = splitList(negativeText);
+
+    if (!queries.length) {
+      queries.push(`${name} חיפה`, `${name} צפון`);
+    }
+
+    if (!positivePatterns.length) {
+      positivePatterns.push(name);
+    }
+
+    return {
+      id,
+      name,
+      enabled: true,
+      roleFamily: family,
+      roleType: type,
+      mainListMinScore: Number(minScoreAnswer || 58),
+      scoreBonus: Number(scoreBonusAnswer || 28),
+      queries,
+      positivePatterns,
+      negativePatterns,
+    };
+  } finally {
+    rl.close();
+  }
+}
+
+function printHelp() {
+  console.log(`
+Add a role to Israeli Job Finder
+
+Usage:
+  node ./scripts/add-role.mjs
+  node ./scripts/add-role.mjs --preset frontend-junior
+  node ./scripts/add-role.mjs --preset frontend-junior --min-score 75
+
+Available presets:
+  ${Object.keys(PRESETS).join(", ")}
+
+Manual CLI example:
+  node ./scripts/add-role.mjs --id frontend_junior --name "Front End Junior" --family frontend --type frontend_junior --min-score 70 --queries "frontend junior חיפה, react junior חיפה" --positive "frontend, react, junior" --negative "senior, full stack, backend, תל אביב"
+
+Notes:
+  --queries, --positive and --negative are comma-separated.
+`);
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+
+  if (args.help || args.h) {
+    printHelp();
+    return;
+  }
+
+  let profile;
+
+  if (args.preset) {
+    const preset = PRESETS[args.preset];
+
+    if (!preset) {
+      throw new Error(
+        `Unknown preset "${args.preset}". Available presets: ${Object.keys(PRESETS).join(", ")}`,
+      );
+    }
+
+    profile = applyCliOverrides(preset, args);
+  } else if (args.name || args.id) {
+    const baseProfile = {
+      id: slugify(args.id || args.name),
+      name: args.name || args.id,
+      enabled: true,
+      roleFamily: args.family || "custom",
+      roleType: args.type || slugify(args.id || args.name),
+      mainListMinScore: Number(args["min-score"] || 58),
+      scoreBonus: Number(args.bonus || 28),
+      queries: splitList(
+        args.queries ||
+          `${args.name || args.id} חיפה, ${args.name || args.id} צפון`,
+      ),
+      positivePatterns: splitList(args.positive || args.name || args.id),
+      negativePatterns: splitList(args.negative || ""),
+    };
+
+    profile = applyCliOverrides(baseProfile, args);
+  } else {
+    profile = await askInteractiveProfile();
+  }
+
+  if (!profile.name) {
+    throw new Error("Role name is required.");
+  }
+
+  profile.id = slugify(profile.id || profile.name);
+
+  await saveRoleProfile(profile);
+
+  console.log("");
+  console.log("Role added/updated successfully.");
+  console.log(`Name: ${profile.name}`);
+  console.log(`ID: ${profile.id}`);
+  console.log(`Queries: ${splitList(profile.queries).length}`);
+  console.log("The next scan will search and score this role.");
+}
+
+main().catch((error) => {
+  console.error("");
+  console.error(`Error: ${error.message}`);
+  process.exit(1);
+});

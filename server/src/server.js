@@ -14,6 +14,12 @@ import { readJson, writeJson } from './fileStore.js';
 import { findJobs } from './findJobs.js';
 import { createFeedbackEntry } from './learning.js';
 import { createJobId, uniqueById } from './utils.js';
+import {
+  getGmailAuthUrl,
+  getGmailConnectionStatus,
+  saveGmailTokensFromCode,
+} from './gmailAuth.js';
+import { getImportedGmailJobs, importGmailJobEmails } from './gmailImport.js';
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -384,6 +390,82 @@ app.get('/api/role-profiles', async (req, res, next) => {
 app.get('/api/sources', async (req, res, next) => {
   try {
     res.json(await readJson(SITE_SOURCES_FILE, []));
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+app.get('/api/gmail/status', async (req, res, next) => {
+  try {
+    res.json(await getGmailConnectionStatus());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/gmail/auth-url', async (req, res, next) => {
+  try {
+    res.json({ url: getGmailAuthUrl() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/gmail/oauth2callback', async (req, res) => {
+  try {
+    const code = req.query.code;
+
+    if (!code) {
+      res.status(400).send('Missing OAuth code');
+      return;
+    }
+
+    await saveGmailTokensFromCode(code);
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    res.send(`
+      <html dir="rtl" lang="he">
+        <head>
+          <meta charset="utf-8" />
+          <title>Gmail חובר</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 32px; background: #f8fafc; color: #0f172a;">
+          <div style="max-width: 520px; margin: 0 auto; background: white; border-radius: 24px; padding: 28px; box-shadow: 0 18px 45px rgba(15,23,42,.12);">
+            <h1 style="margin: 0 0 12px;">Gmail חובר בהצלחה</h1>
+            <p style="font-size: 16px; line-height: 1.7;">אפשר לחזור לאפליקציה ולייבא מיילים רלוונטיים למשרות.</p>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.location.href = ${JSON.stringify(clientUrl)};
+            }, 1200);
+          </script>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Gmail OAuth callback failed:', error);
+    res.status(500).send(`Gmail OAuth failed: ${error.message}`);
+  }
+});
+
+app.post('/api/gmail/import', async (req, res, next) => {
+  try {
+    const days = Number.parseInt(req.body?.days || process.env.GMAIL_IMPORT_DAYS || '14', 10);
+    const maxResults = Number.parseInt(
+      req.body?.maxResults || process.env.GMAIL_IMPORT_MAX_RESULTS || '40',
+      10,
+    );
+
+    res.json(await importGmailJobEmails({ days, maxResults }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/gmail/jobs', async (req, res, next) => {
+  try {
+    res.json(await getImportedGmailJobs());
   } catch (error) {
     next(error);
   }
