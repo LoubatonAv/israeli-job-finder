@@ -1,5 +1,54 @@
-node_modules
+# dependencies
+node_modules/
+server/node_modules/
+client/node_modules/
+
+# env / secrets
 .env
+.env.*
+!.env.example
 server/.env
-client/dist
+server/.env.*
+!server/.env.example
+client/.env
+client/.env.*
+!client/.env.example
+
+# Gmail / Google OAuth private data
+data/gmail-tokens.json
+data/gmail-imports.json
+
+# Personal app data
+data/jobs.json
+data/feedback.json
+data/scan-audit.json
+data/review-candidates.clean.json
+data/rejected-review.clean.json
+data/jobs.*.json
+data/*.backup*.json
+
+# Local generated / temporary scripts outputs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+client/dist/
+server/dist/
+
+# OS / editor
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Zip backups / generated patches
+*.zip
+
+# Playwright / test artifacts
+test-results/
+playwright-report/
