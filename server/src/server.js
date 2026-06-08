@@ -668,7 +668,7 @@ function getGmailMailText(mail = {}) {
 function isNonJobGmailMail(mail = {}) {
   const text = getGmailMailText(mail);
 
-  return /password\s*reset|security\s*alert|verification\s*code|two[-\s]*factor|2fa|otp|login\s*code|temporary\s*password|temporary\s*login|auth\s*code|קוד\s*ה?אימות|קוד\s*כניסה|קוד\s*זמני|הקוד\s*הזמני|אימות\s*כניסה|סיסמה\s*זמנית|סיסמא\s*זמנית|הסיסמה\s*הזמנית|הסיסמא\s*הזמנית|חשבונית|receipt|invoice|billing|payment|תשלום|קורות\s*החיים\s*שלך\s*נשלחו|נשלחו\s*בהצלחה/i.test(
+  return /password\s*reset|security\s*alert|verification\s*code|two[-\s]*factor|2fa|otp|login\s*code|temporary\s*password|temporary\s*login|auth\s*code|קוד\s*ה?אימות|קוד\s*כניסה|קוד\s*זמני|הקוד\s*הזמני|אימות\s*כניסה|סיסמה\s*זמנית|סיסמא\s*זמנית|הסיסמה\s*הזמנית|הסיסמא\s*הזמנית|חשבונית|receipt|invoice|billing|payment|תשלום/i.test(
     text,
   );
 }
@@ -1088,14 +1088,310 @@ function parseAllJobsDigestJobs(mail = {}) {
   });
 }
 
+function isDrushimMail(mail = {}) {
+  const text = [
+    mail.sender,
+    mail.title,
+    mail.snippet,
+    mail.bodyText,
+    ...(mail.links || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("drushim.co.il") ||
+    text.includes("drushim") ||
+    text.includes("דרושים il") ||
+    text.includes("דרושים")
+  );
+}
+
+function isBadDrushimAnchor(title = "", href = "") {
+  const text = `${title} ${href}`.toLowerCase();
+
+  return /youtube|linkedin|facebook|fb|google|apple|unsubscribe|unsubscribed|הסרה|להסרה|הסר|דיוורים|privacy|terms|בואו לפגוש/i.test(
+    text,
+  );
+}
+
+function looksLikeDrushimJobTitle(title = "") {
+  const text = cleanText(title);
+
+  if (text.length < 5 || text.length > 140) return false;
+  if (/^(youtube|linkedin|fb|google|apple|link)$/i.test(text)) return false;
+
+  return (
+    /דרוש|דרושה|דרוש\/ה|מיישם|מטמיע|בודק|בודקת|QA|Test|Supervisor|כלכלן|כלכלנית|מפתח|מפתחת|אוטומציה|מערכות|תוכנה|Help\s*desk|Data|Back\s*Office|Developer|Engineer/i.test(
+      text,
+    ) || text.length >= 18
+  );
+}
+
+function getDrushimHtmlLines(mail = {}) {
+  const html = String(mail.bodyHtml || "");
+
+  if (!html) {
+    return String(mail.bodyText || "")
+      .replace(/\r/g, "\n")
+      .split(/\n+/)
+      .map(cleanText)
+      .filter(Boolean);
+  }
+
+  const $ = loadHtml(html);
+
+  $("script,style").remove();
+  $("br").replaceWith("\n");
+  $("a").append("\n");
+  $("p,div,tr,table,li,h1,h2,h3").append("\n");
+
+  return $.root()
+    .text()
+    .replace(/\r/g, "\n")
+    .split(/\n+/)
+    .map(cleanText)
+    .filter(Boolean);
+}
+
+function getDrushimJobAnchors(mail = {}) {
+  const html = String(mail.bodyHtml || "");
+  if (!html) return [];
+
+  const $ = loadHtml(html);
+  const anchors = [];
+  const seen = new Set();
+
+  $("a").each((_, anchor) => {
+    const title = cleanText($(anchor).text());
+    const href = cleanText($(anchor).attr("href") || "");
+
+    if (!title || !href) return;
+    if (isBadDrushimAnchor(title, href)) return;
+    if (!looksLikeDrushimJobTitle(title)) return;
+
+    const key = `${title}|${href}`.toLowerCase();
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    anchors.push({
+      title,
+      url: href,
+    });
+  });
+
+  return anchors;
+}
+
+function findDrushimTitleLineIndex(lines = [], title = "", startAt = 0) {
+  const wanted = cleanText(title).toLowerCase();
+
+  for (let index = startAt; index < lines.length; index += 1) {
+    if (cleanText(lines[index]).toLowerCase() === wanted) {
+      return index;
+    }
+  }
+
+  for (let index = startAt; index < lines.length; index += 1) {
+    const line = cleanText(lines[index]).toLowerCase();
+
+    if (line.includes(wanted)) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function isDrushimFooterLine(line = "") {
+  return /בואו לפגוש אותנו|youtube|linkedin|fb|google|apple|להסרה|דיוורים|unsubscribed@|דרושים\s*IL\s*-|מגשימים\s*1|פתח\s*תקווה/i.test(
+    line,
+  );
+}
+
+function splitDrushimLocationCompany(value = "") {
+  const text = cleanText(value)
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+-\s*$/, "")
+    .trim();
+
+  if (!text) {
+    return {
+      location: "",
+      company: "",
+    };
+  }
+
+  const hiddenMatch = text.match(/^(.*?)\s+-\s*חסוי\s*-?$/i);
+  if (hiddenMatch) {
+    return {
+      location: cleanText(hiddenMatch[1]),
+      company: "חסוי",
+    };
+  }
+
+  const knownCompanySuffixes = [
+    "Calanit by One",
+    "SQLink",
+    "matrix",
+    "Matrix",
+    "Ness",
+    "בזן -בתי זיקוק בחיפה",
+    "בזן",
+  ];
+
+  for (const company of knownCompanySuffixes.sort((a, b) => b.length - a.length)) {
+    const regex = new RegExp(`^(.*?)\\s+${escapeRegExp(company)}$`, "i");
+    const match = text.match(regex);
+
+    if (match) {
+      return {
+        location: cleanText(match[1]),
+        company,
+      };
+    }
+  }
+
+  const englishCompanyMatch = text.match(/^(.*?)\s+([A-Za-z][A-Za-z0-9&.'() -]{1,60})$/);
+  if (englishCompanyMatch) {
+    return {
+      location: cleanText(englishCompanyMatch[1]),
+      company: cleanText(englishCompanyMatch[2]),
+    };
+  }
+
+  const locationPrefixMatch = text.match(
+    /^(חיפה|קריית ביאליק|קרית ביאליק|בני ברק|עכו|כרמיאל|נשר|יקנעם|יוקנעם|קריות|צפון|Remote|מרחוק)\s+(.+)$/i,
+  );
+
+  if (locationPrefixMatch) {
+    return {
+      location: cleanText(locationPrefixMatch[1]),
+      company: cleanText(locationPrefixMatch[2]),
+    };
+  }
+
+  return {
+    location: text,
+    company: cleanSenderName("Drushim"),
+  };
+}
+
+function cleanDrushimDescriptionLines(lines = []) {
+  const cleaned = [];
+
+  for (const line of lines) {
+    const value = cleanText(line);
+
+    if (!value) continue;
+    if (isDrushimFooterLine(value)) break;
+    if (/^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(value)) continue;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) continue;
+    if (/^היי\s+אבנר$/i.test(value)) continue;
+    if (/^ריכזנו לך את כל המשרות/i.test(value)) continue;
+
+    cleaned.push(value);
+  }
+
+  return cleaned.join("\n").trim();
+}
+
+function parseDrushimDigestJobs(mail = {}) {
+  if (!isDrushimMail(mail)) return [];
+
+  const anchors = getDrushimJobAnchors(mail);
+  const lines = getDrushimHtmlLines(mail);
+
+  if (!anchors.length || !lines.length) return [];
+
+  const jobs = [];
+  const seen = new Set();
+  let searchFrom = 0;
+
+  anchors.forEach((anchor, index) => {
+    const titleIndex = findDrushimTitleLineIndex(lines, anchor.title, searchFrom);
+    if (titleIndex < 0) return;
+
+    const nextAnchor = anchors[index + 1];
+    const nextTitleIndex = nextAnchor
+      ? findDrushimTitleLineIndex(lines, nextAnchor.title, titleIndex + 1)
+      : -1;
+
+    const endIndex = nextTitleIndex > titleIndex ? nextTitleIndex : lines.length;
+    const blockLines = lines.slice(titleIndex + 1, endIndex);
+
+    const metaLineIndex = blockLines.findIndex(
+      (line) =>
+        line &&
+        !/^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(line) &&
+        !/^היי\s+אבנר$/i.test(line) &&
+        !/^ריכזנו לך/i.test(line) &&
+        !isDrushimFooterLine(line),
+    );
+
+    if (metaLineIndex < 0) return;
+
+    const metaLine = blockLines[metaLineIndex];
+    const { location, company } = splitDrushimLocationCompany(metaLine);
+
+    const sentLineIndex = blockLines.findIndex((line) =>
+      /^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(line),
+    );
+
+    const descriptionStartIndex =
+      sentLineIndex >= 0 ? sentLineIndex + 1 : metaLineIndex + 1;
+
+    const description = cleanDrushimDescriptionLines(
+      blockLines.slice(descriptionStartIndex),
+    );
+
+    const title = cleanText(anchor.title);
+    const url = normalizeGmailJobUrl(anchor.url || "");
+
+    if (!title || !company || !location) return;
+
+    const key = `${title}|${company}|${location}|${url}`.toLowerCase();
+    if (seen.has(key)) return;
+
+    seen.add(key);
+
+    jobs.push({
+      title,
+      company,
+      location,
+      source: "Gmail · Drushim",
+      sourceQuery: "Gmail import · Drushim digest split",
+      url,
+      description,
+      snippet: description.slice(0, 280),
+      gmailMessageId: mail.gmailMessageId,
+      gmailThreadId: mail.threadId,
+      gmailDigestSplit: true,
+      gmailDigestProvider: "drushim",
+      gmailDigestIndex: jobs.length + 1,
+      importedFromGmailAt: new Date().toISOString(),
+      publishedAt: mail.date || mail.importedAt || null,
+      status: "found",
+    });
+
+    searchFrom = titleIndex + 1;
+  });
+
+  return jobs;
+}
+
 function parseGmailDigestJobs(mail = {}) {
   if (isAllJobsMail(mail)) {
     return parseAllJobsDigestJobs(mail);
   }
 
+  if (isDrushimMail(mail)) {
+    return parseDrushimDigestJobs(mail);
+  }
+
   return [];
 }
-
 function normalizeAllJobsCandidateFromContent(candidate = {}, mail = {}) {
   if (!isAllJobsMail(mail) && candidate.source !== "Gmail · AllJobs") {
     return candidate;
@@ -2146,6 +2442,7 @@ app.post("/api/gmail-agent/jobs/:id/status", async (req, res, next) => {
 app.listen(port, () => {
   console.log(`שרת חיפוש המשרות פעיל: http://localhost:${port}`);
 });
+
 
 
 

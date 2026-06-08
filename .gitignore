@@ -52,3 +52,14 @@ Thumbs.db
 # Playwright / test artifacts
 test-results/
 playwright-report/
+
+
+.env
+.env.*
+*.zip
+server.zip
+client_secret*.json
+credentials*.json
+token*.json
+tokens*.json
+oauth*.json

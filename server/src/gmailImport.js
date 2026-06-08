@@ -1,4 +1,4 @@
-import { readJson, writeJson } from "./fileStore.js";
+﻿import { readJson, writeJson } from "./fileStore.js";
 import {
   GMAIL_IMPORTS_FILE,
   KEYWORDS_FILE,
@@ -491,7 +491,7 @@ async function looksLikeJobMail(item = {}, trustedSenders = null) {
     );
 
   const obviousNonJob =
-    /password\s*reset|security\s*alert|verification\s*code|קוד\s*אימות|חשבונית|receipt|invoice|billing|payment|תשלום|קורות\s*החיים\s*שלך\s*נשלחו|נשלחו\s*בהצלחה/i.test(
+    /password\s*reset|security\s*alert|verification\s*code|קוד\s*אימות|חשבונית|receipt|invoice|billing|payment|תשלום/i.test(
       text,
     );
 
@@ -652,3 +652,4 @@ export async function importGmailJobEmails({
 export async function getImportedGmailJobs() {
   return readJson(GMAIL_IMPORTS_FILE, []);
 }
+
