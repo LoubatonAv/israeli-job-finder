@@ -19,7 +19,7 @@ function cleanSender(value = '') {
   return String(value || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() || 'שולח לא ידוע';
 }
 
-export default function GmailJobsPanel({ onMessage, onError }) {
+export default function GmailJobsPanel({ onMessage, onError, onImportedToJobs }) {
   const [status, setStatus] = useState({ connected: false });
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,16 +63,18 @@ export default function GmailJobsPanel({ onMessage, onError }) {
 
   async function importFromGmail() {
     setLoading(true);
-    setLocalMessage('מייבא מיילים רלוונטיים מהשבועיים האחרונים...');
+    setLocalMessage('מייבא מיילים רלוונטיים, מדרג אותם ומכניס מתאימים לרשימת המשרות...');
 
     try {
-      const result = await apiPost('/api/gmail/import', {
+      const result = await apiPost('/api/gmail/import-to-jobs', {
         days: 14,
         maxResults: 40,
       });
 
       await refresh();
-      const text = `יובאו ${result.total || 0} מיילים רלוונטיים מ-Gmail. סך הכול שמורים: ${result.savedTotal || 0}.`;
+      await onImportedToJobs?.();
+
+      const text = `Gmail Agent נסרק: ${result.scanned || 0} מיילים, ${result.total || 0} הגיעו ממקורות משרות, ${result.processedNow ?? result.jobs?.length ?? 0} עובדו עכשיו, נוספו ${result.addedToJobs || 0} משרות, ${result.reviewCandidates || 0} הועברו לבדיקה ידנית.`;
       setLocalMessage(text);
       onMessage?.(text);
     } catch (error) {
@@ -93,7 +95,7 @@ export default function GmailJobsPanel({ onMessage, onError }) {
             </div>
             <h2 className="mt-3 text-2xl font-black text-slate-950">ייבוא משרות ממיילים</h2>
             <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
-              המערכת מחפשת רק מיילים רלוונטיים מהשבועיים האחרונים לפי שאילתת Gmail מוגבלת, ולא סורקת את כל התיבה סתם.
+              המערכת קוראת מיילים ממקורות משרות אמינים בלבד. מייל כזה לא נזרק בגלל ניקוד נמוך — הוא נכנס למערכת או לבדיקה ידנית.
             </p>
           </div>
 
@@ -114,7 +116,7 @@ export default function GmailJobsPanel({ onMessage, onError }) {
                 disabled={loading}
                 className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-xl shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:opacity-60"
               >
-                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> ייבא מיילים עכשיו
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> ייבא ושלב במשרות
               </button>
             )}
 
@@ -136,7 +138,7 @@ export default function GmailJobsPanel({ onMessage, onError }) {
             </p>
           </div>
           <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-            <p className="text-xs font-black text-slate-400">מיילים שנשמרו</p>
+            <p className="text-xs font-black text-slate-400">מיילים גולמיים שנשמרו</p>
             <p className="mt-1 text-lg font-black text-slate-950">{jobs.length}</p>
           </div>
           <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
@@ -160,7 +162,7 @@ export default function GmailJobsPanel({ onMessage, onError }) {
             </div>
             <h3 className="mt-4 text-2xl font-black text-slate-950">עדיין אין מיילים מיובאים</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-7 text-slate-500">
-              חבר Gmail ואז לחץ על ייבוא. בשלב הבא נחבר את המיילים האלה לניקוד ההתאמה של המשרות.
+              חבר Gmail ואז לחץ על ייבוא. מיילים מתאימים יעברו ניקוד ויופיעו יחד עם שאר המשרות.
             </p>
           </div>
         ) : (

@@ -1,48 +1,78 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Archive,
   BarChart3,
+  Bookmark,
   CheckCircle2,
   ClipboardCheck,
   Filter,
-  Network,
-  PartyPopper,
+  Inbox,
+  MailCheck,
   RefreshCw,
   Search,
   Sparkles,
   Target,
-  ShieldCheck,
   Trophy,
 } from "lucide-react";
 import JobCard from "./components/JobCard.jsx";
 import GmailJobsPanel from "./components/GmailJobsPanel.jsx";
+import GmailAgentPanel from "./components/GmailAgentPanel.jsx";
+import RoleManager from "./components/RoleManager.jsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "./lib/api.js";
 
-const DAILY_GOAL = 5;
-
 const tabs = [
-  { value: "main", label: "לטיפול" },
-  { value: "review", label: "לבדיקה ידנית" },
-  { value: "gmail", label: "מיילים מ-Gmail" },
-  { value: "saved", label: "שמורות" },
-  { value: "applied", label: "נשלחו" },
-  { value: "archive", label: "ארכיון" },
+  { value: "agent", label: "Gmail Agent — רק Gmail" },
+  { value: "main", label: "לטיפול — כל המקורות" },
+  { value: "review", label: "בדיקה ידנית — כל המקורות" },
+  { value: "applied", label: "נשלחו — כל המקורות" },
+  { value: "saved", label: "שמורות — כל המקורות" },
+  { value: "archive", label: "ארכיון — כל המקורות" },
+  { value: "gmail", label: "מיילים גולמיים" },
+  { value: "roles", label: "תפקידים" },
 ];
 
+function isClosedStatus(status = "") {
+  return [
+    "applied",
+    "interview",
+    "saved",
+    "archived",
+    "rejected",
+    "skipped",
+  ].includes(String(status || "found"));
+}
+
+function isArchivedJob(job = {}) {
+  return ["archived", "rejected", "skipped"].includes(String(job.status || ""));
+}
+
+function isAppliedJob(job = {}) {
+  return ["applied", "interview"].includes(String(job.status || ""));
+}
+
+function isWaitingJob(job = {}) {
+  return (
+    !isClosedStatus(job.status) && String(job.recommendation || "") !== "review"
+  );
+}
+
 function getScoreBand(score = 0) {
-  if (score >= 85) return "excellent";
-  if (score >= 70) return "good";
-  if (score >= 55) return "medium";
+  const value = Number(score || 0);
+  if (value >= 85) return "excellent";
+  if (value >= 70) return "good";
+  if (value >= 55) return "medium";
   return "low";
 }
 
 function hebrewSource(source = "") {
   const normalized = String(source || "").toLowerCase();
+  if (normalized.includes("gmail"))
+    return source.replace("Gmail · ", "Gmail · ") || "Gmail";
   if (normalized.includes("drushim")) return "דרושים";
-  if (normalized.includes("alljobs")) return "אולג׳ובס";
-  if (normalized.includes("jobmaster")) return "ג׳ובמאסטר";
-  if (normalized.includes("matrix")) return "מטריקס";
-  if (normalized.includes("sitesources") || normalized.includes("אתרי")) return "אתרי מקור";
-  if (normalized.includes("google")) return "גוגל";
+  if (normalized.includes("alljobs")) return "AllJobs";
+  if (normalized.includes("jobmaster")) return "JobMaster";
+  if (normalized.includes("matrix")) return "Matrix";
+  if (normalized.includes("site")) return "אתרי מקור";
   return source || "מקור לא ידוע";
 }
 
@@ -57,32 +87,9 @@ function isToday(value) {
   return date.toLocaleDateString("en-CA") === todayKey();
 }
 
-function statusText(status) {
-  if (status === "applied") return "נשלח";
-  if (status === "saved") return "שמורה";
-  if (status === "interview") return "ראיון";
-  if (status === "archived") return "ארכיון";
-  if (status === "rejected") return "נדחתה";
-  if (status === "skipped") return "הוסרה";
-  return "טרם נשלח";
-}
-
-function isActionableJob(job = {}) {
-  const status = String(job.status || "found");
-  return !["saved", "applied", "interview", "archived", "rejected", "skipped"].includes(status);
-}
-
-function isAppliedJob(job = {}) {
-  return ["applied", "interview"].includes(String(job.status || ""));
-}
-
-function isArchivedJob(job = {}) {
-  return ["archived", "rejected", "skipped"].includes(String(job.status || ""));
-}
-
-function StatTile({ label, value, hint, icon: Icon, tone = "default" }) {
+function StatTile({ label, value, hint, icon: Icon, tone = "slate" }) {
   const tones = {
-    default: "from-slate-950 to-slate-800 text-white",
+    slate: "from-slate-950 to-slate-800 text-white",
     green: "from-emerald-500 to-teal-500 text-white",
     blue: "from-sky-500 to-indigo-500 text-white",
     purple: "from-violet-500 to-fuchsia-500 text-white",
@@ -90,19 +97,27 @@ function StatTile({ label, value, hint, icon: Icon, tone = "default" }) {
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 shadow-xl shadow-slate-200/80 ${tones[tone]}`}>
+    <div
+      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 shadow-xl shadow-slate-200/80 ${tones[tone] || tones.slate}`}
+    >
       <div className="absolute -left-8 -top-8 h-24 w-24 rounded-full bg-white/15" />
       <div className="relative flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-bold opacity-80">{label}</p>
-          <p className="mt-2 text-4xl font-black leading-none tracking-tight">{value}</p>
-          {hint && <p className="mt-2 text-xs font-bold opacity-75">{hint}</p>}
+          <p className="mt-2 text-4xl font-black leading-none tracking-tight">
+            {value}
+          </p>
+          {hint ? (
+            <p className="mt-2 text-xs font-bold leading-5 opacity-75">
+              {hint}
+            </p>
+          ) : null}
         </div>
-        {Icon && (
+        {Icon ? (
           <div className="rounded-2xl bg-white/20 p-3 backdrop-blur">
             <Icon size={22} />
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -111,7 +126,9 @@ function StatTile({ label, value, hint, icon: Icon, tone = "default" }) {
 function SelectField({ label, value, onChange, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-extrabold text-slate-500">{label}</span>
+      <span className="mb-1.5 block text-xs font-extrabold text-slate-500">
+        {label}
+      </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -125,17 +142,16 @@ function SelectField({ label, value, onChange, children }) {
 
 function EmptyState({ activeTab, onScan, loading }) {
   const copy =
-    activeTab === "applied"
-      ? "עדיין אין משרות שסומנו כנשלחו."
-      : activeTab === "gmail"
-        ? "עדיין לא יובאו מיילים מ-Gmail."
-      : activeTab === "archive"
-        ? "עדיין אין משרות בארכיון. משרות שתסיר יופיעו כאן ולא יעמיסו על הרשימות הפעילות."
-        : activeTab === "saved"
-          ? "עדיין אין משרות שמורות."
-          : activeTab === "review"
-            ? "אין כרגע משרות לבדיקה ידנית."
-            : "אין משרות שממתינות לטיפול כרגע.";
+    {
+      agent: "כאן מנהלים את Gmail Agent ומייבאים מיילים ממקורות משרות אמינים.",
+      gmail: "עדיין לא יובאו מיילים גולמיים מ-Gmail.",
+      roles: "כאן אפשר להוסיף, לכבות או למחוק תפקידי יעד.",
+      archive: "עדיין אין משרות בארכיון.",
+      saved: "עדיין אין משרות שמורות.",
+      applied: "עדיין אין משרות שסומנו כנשלחו.",
+      review: "אין כרגע משרות לבדיקה ידנית.",
+      main: "אין משרות שממתינות לטיפול כרגע.",
+    }[activeTab] || "הרשימה ריקה.";
 
   return (
     <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm">
@@ -143,18 +159,20 @@ function EmptyState({ activeTab, onScan, loading }) {
         <ClipboardCheck size={32} />
       </div>
       <h3 className="mt-4 text-2xl font-black text-slate-950">הרשימה ריקה</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-7 text-slate-500">{copy} אפשר לנקות פילטרים או להריץ סריקה חדשה.</p>
-      {activeTab === "main" && (
+      <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-7 text-slate-500">
+        {copy}
+      </p>
+      {activeTab === "main" ? (
         <button
           type="button"
           onClick={onScan}
           disabled={loading}
           className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-60"
         >
-          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          סרוק עכשיו
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> סרוק
+          עכשיו
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -164,10 +182,9 @@ export default function App() {
   const [reviewJobs, setReviewJobs] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [scanSummary, setScanSummary] = useState(null);
-  const [sources, setSources] = useState([]);
-  const [activeTab, setActiveTab] = useState("main");
+  const [agentSummary, setAgentSummary] = useState(null);
+  const [activeTab, setActiveTab] = useState("agent");
   const [loading, setLoading] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -179,186 +196,88 @@ export default function App() {
   const [sortBy, setSortBy] = useState("score-desc");
 
   async function loadAll() {
-    const [jobsData, reviewData, feedbackData, scanData, sourcesData] = await Promise.all([
-      apiGet("/api/jobs"),
-      apiGet("/api/jobs/review").catch(() => []),
-      apiGet("/api/feedback").catch(() => []),
-      apiGet("/api/scan-summary").catch(() => null),
-      apiGet("/api/sources").catch(() => []),
-    ]);
+    const [jobsData, reviewData, feedbackData, scanData, agentData] =
+      await Promise.all([
+        apiGet("/api/jobs"),
+        apiGet("/api/jobs/review").catch(() => []),
+        apiGet("/api/feedback").catch(() => []),
+        apiGet("/api/scan-summary").catch(() => null),
+        apiGet("/api/gmail/agent-summary").catch(() => null),
+      ]);
 
     setJobs(Array.isArray(jobsData) ? jobsData : []);
     setReviewJobs(Array.isArray(reviewData) ? reviewData : []);
     setFeedback(Array.isArray(feedbackData) ? feedbackData : []);
     setScanSummary(scanData);
-    setSources(Array.isArray(sourcesData) ? sourcesData : []);
+    setAgentSummary(agentData);
   }
 
   useEffect(() => {
     loadAll().catch((err) => setError(err.message));
   }, []);
 
-  useEffect(() => {
-    if (!loading) return undefined;
-
-    setScanProgress(10);
-    const intervalId = setInterval(() => {
-      setScanProgress((current) => Math.min(94, current + Math.max(2, Math.round((100 - current) / 9))));
-      loadAll().catch(() => undefined);
-    }, 1300);
-
-    return () => clearInterval(intervalId);
-  }, [loading]);
-
   async function runFinder() {
     setLoading(true);
     setError("");
-    setMessage("הסריקה התחילה. המערכת מחפשת, מסננת ומעדכנת את הרשימה תוך כדי עבודה.");
+    setMessage("הסריקה התחילה. המערכת מחפשת ומעדכנת את הרשימה.");
 
     try {
       const result = await apiPost("/api/jobs/find");
-      setScanProgress(100);
-      setJobs(result.jobs || []);
       await loadAll();
-      setMessage(`הסריקה הסתיימה: נסרקו ${result.scanned}, נוספו ${result.newJobs}, נשמרו ${result.totalJobs}.`);
+      setMessage(
+        `הסריקה הסתיימה: נסרקו ${result.scanned || 0}, נוספו ${result.newJobs || 0}, נשמרו ${result.totalJobs || 0}.`,
+      );
     } catch (err) {
       setError(err.message);
     } finally {
-      setTimeout(() => setLoading(false), 700);
+      setLoading(false);
     }
   }
 
-  function statusSuccessMessage(status, fromReview = false) {
-    if (status === "applied") {
+  function successMessage(status, fromReview = false) {
+    if (status === "applied")
       return fromReview
-        ? "סומן כנשלח, הועבר לטאב נשלחו והמערכת תלמד שזו משרה טובה."
-        : "סומן כנשלח והועבר לטאב נשלחו. מצוין — עוד הגשה נספרה ליעד היומי.";
-    }
-
-    if (status === "saved") {
+        ? "סומן כנשלח והמערכת תלמד שזו משרה טובה."
+        : "סומן כנשלח והועבר לטאב נשלחו.";
+    if (status === "saved")
       return fromReview
-        ? "המשרה נשמרה, הועברה לטאב שמורות והמערכת תלמד שכדאי לחפש דומות לה."
-        : "המשרה נשמרה והועברה לטאב שמורות. אפשר לחזור אליה מאוחר יותר.";
-    }
-
+        ? "המשרה נשמרה והמערכת תלמד שכדאי לחפש דומות."
+        : "המשרה נשמרה.";
     return "סטטוס המשרה עודכן.";
   }
 
   async function updateStatus(id, status) {
-    const updated = await apiPatch(`/api/jobs/${encodeURIComponent(id)}`, { status });
-    setJobs((current) => current.map((job) => (job.id === id ? updated : job)));
+    await apiPatch(`/api/jobs/${encodeURIComponent(id)}`, { status });
     await loadAll();
-    setMessage(statusSuccessMessage(status));
+    setMessage(successMessage(status));
+    if (status === "applied") setActiveTab("applied");
+    if (status === "saved") setActiveTab("saved");
   }
 
   async function promoteReviewJob(id, status) {
-    await apiPost(`/api/jobs/review/${encodeURIComponent(id)}/promote`, { status });
+    await apiPost(`/api/jobs/review/${encodeURIComponent(id)}/promote`, {
+      status,
+    });
     await loadAll();
-    setMessage(statusSuccessMessage(status, true));
-    if (status === "applied") {
-      setActiveTab("applied");
-    } else if (status === "saved") {
-      setActiveTab("saved");
-    }
+    setMessage(successMessage(status, true));
+    if (status === "applied") setActiveTab("applied");
+    if (status === "saved") setActiveTab("saved");
   }
 
   async function deleteJob(id, feedbackPayload = {}) {
     await apiDelete(`/api/jobs/${encodeURIComponent(id)}`, feedbackPayload);
     await loadAll();
-    setMessage("המשרה הועברה לארכיון ונעלמה מהרשימות הפעילות. הסיבה נשמרה ותשפיע על הסינון הבא.");
+    setMessage("המשרה הועברה לארכיון. הסיבה נשמרה ללמידה.");
   }
 
   async function rejectReviewJob(id, feedbackPayload = {}) {
-    await apiPost(`/api/jobs/review/${encodeURIComponent(id)}/reject`, feedbackPayload);
+    await apiPost(
+      `/api/jobs/review/${encodeURIComponent(id)}/reject`,
+      feedbackPayload,
+    );
     await loadAll();
-    setMessage("המשרה הוסרה מהרשימה לבדיקה. הסיבה נשמרה ותשפיע על הסינון הבא.");
+    setMessage("המשרה הוסרה מבדיקה ידנית. הסיבה נשמרה ללמידה.");
   }
-
-  const stats = useMemo(() => {
-    const actionable = jobs.filter(isActionableJob);
-    const savedJobs = jobs.filter((job) => job.status === "saved");
-    const appliedJobs = jobs.filter(isAppliedJob);
-    const archivedJobs = jobs.filter(isArchivedJob);
-    const appliedToday = appliedJobs.filter((job) => isToday(job.updatedAt || job.foundAt)).length;
-
-    return {
-      total: actionable.length,
-      allStored: jobs.length,
-      apply: actionable.filter((job) => job.recommendation === "apply").length,
-      review: actionable.filter((job) => job.recommendation === "review").length,
-      saved: savedJobs.length,
-      applied: appliedJobs.length,
-      archived: archivedJobs.length,
-      waiting: actionable.length + reviewJobs.length,
-      appliedToday,
-      learningEvents: feedback.length,
-      reviewQueue: reviewJobs.length,
-      activeSources: sources.filter((source) => source && source.enabled !== false).length,
-      scannedLastRun: scanSummary?.totals?.incoming || 0,
-      filteredLastRun: scanSummary?.totals?.filtered || 0,
-    };
-  }, [jobs, feedback, reviewJobs, sources, scanSummary]);
-
-  const dailyProgress = Math.min(100, Math.round((stats.appliedToday / DAILY_GOAL) * 100));
-  const reachedDailyGoal = stats.appliedToday >= DAILY_GOAL;
-
-  const activeJobs = useMemo(() => {
-    if (activeTab === "gmail") return [];
-    if (activeTab === "review") return reviewJobs;
-    if (activeTab === "saved") return jobs.filter((job) => job.status === "saved");
-    if (activeTab === "applied") return jobs.filter(isAppliedJob);
-    if (activeTab === "archive") return jobs.filter(isArchivedJob);
-    return jobs.filter(isActionableJob);
-  }, [activeTab, jobs, reviewJobs]);
-
-  const filterOptions = useMemo(() => {
-    const sources = [...new Set(activeJobs.map((job) => hebrewSource(job.source || job.via)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "he"));
-    const locations = [...new Set(activeJobs.map((job) => job.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, "he"));
-    const statuses = [...new Set(activeJobs.map((job) => statusText(job.status)).filter(Boolean))];
-    return { sources, locations, statuses };
-  }, [activeJobs]);
-
-  const filteredJobs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-
-    return activeJobs
-      .filter((job) => {
-        const score = Number(job.fitScore || 0);
-        const band = getScoreBand(score);
-        const sourceName = hebrewSource(job.source || job.via);
-        const currentStatus = statusText(job.status);
-
-        const matchesScore = scoreFilter === "all" || band === scoreFilter;
-        const matchesSource = sourceFilter === "all" || sourceName === sourceFilter;
-        const matchesLocation = locationFilter === "all" || job.location === locationFilter;
-        const matchesStatus = statusFilter === "all" || currentStatus === statusFilter;
-
-        const text = [
-          job.title,
-          job.company,
-          job.location,
-          job.description,
-          sourceName,
-          currentStatus,
-          ...(job.reasons || []),
-          ...(job.warnings || []),
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return matchesScore && matchesSource && matchesLocation && matchesStatus && (!q || text.includes(q));
-      })
-      .sort((a, b) => {
-        if (sortBy === "newest") return new Date(b.foundAt || 0) - new Date(a.foundAt || 0);
-        if (sortBy === "oldest") return new Date(a.foundAt || 0) - new Date(b.foundAt || 0);
-        if (sortBy === "title") return String(a.title || "").localeCompare(String(b.title || ""), "he");
-        if (sortBy === "score-asc") return Number(a.fitScore || 0) - Number(b.fitScore || 0);
-
-        const scoreDiff = Number(b.fitScore || 0) - Number(a.fitScore || 0);
-        if (scoreDiff) return scoreDiff;
-        return new Date(b.foundAt || 0) - new Date(a.foundAt || 0);
-      });
-  }, [activeJobs, search, scoreFilter, sourceFilter, locationFilter, statusFilter, sortBy]);
 
   function resetFilters() {
     setSearch("");
@@ -369,150 +288,241 @@ export default function App() {
     setSortBy("score-desc");
   }
 
+  const tabJobs = useMemo(() => {
+    if (activeTab === "review") return reviewJobs;
+    if (activeTab === "applied") return jobs.filter(isAppliedJob);
+    if (activeTab === "saved")
+      return jobs.filter((job) => job.status === "saved");
+    if (activeTab === "archive") return jobs.filter(isArchivedJob);
+    return jobs.filter(isWaitingJob);
+  }, [activeTab, jobs, reviewJobs]);
+
+  const filteredJobs = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    const result = tabJobs.filter((job) => {
+      const text = [
+        job.title,
+        job.company,
+        job.location,
+        job.source,
+        job.description,
+        ...(job.reasons || []),
+        ...(job.warnings || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (term && !text.includes(term)) return false;
+      if (scoreFilter !== "all" && getScoreBand(job.fitScore) !== scoreFilter)
+        return false;
+      if (sourceFilter !== "all" && String(job.source || "") !== sourceFilter)
+        return false;
+      if (
+        locationFilter !== "all" &&
+        String(job.location || "") !== locationFilter
+      )
+        return false;
+      if (
+        statusFilter !== "all" &&
+        String(job.status || "found") !== statusFilter
+      )
+        return false;
+      return true;
+    });
+
+    return [...result].sort((a, b) => {
+      if (sortBy === "score-asc")
+        return Number(a.fitScore || 0) - Number(b.fitScore || 0);
+      if (sortBy === "newest")
+        return (
+          new Date(b.publishedAt || b.importedFromGmailAt || 0) -
+          new Date(a.publishedAt || a.importedFromGmailAt || 0)
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.publishedAt || a.importedFromGmailAt || 0) -
+          new Date(b.publishedAt || b.importedFromGmailAt || 0)
+        );
+      if (sortBy === "title")
+        return String(a.title || "").localeCompare(String(b.title || ""), "he");
+      return Number(b.fitScore || 0) - Number(a.fitScore || 0);
+    });
+  }, [
+    tabJobs,
+    search,
+    scoreFilter,
+    sourceFilter,
+    locationFilter,
+    statusFilter,
+    sortBy,
+  ]);
+
+  const filterOptions = useMemo(() => {
+    const allVisible = activeTab === "review" ? reviewJobs : jobs;
+    return {
+      sources: [
+        ...new Set(allVisible.map((job) => job.source).filter(Boolean)),
+      ].sort(),
+      locations: [
+        ...new Set(allVisible.map((job) => job.location).filter(Boolean)),
+      ].sort((a, b) => String(a).localeCompare(String(b), "he")),
+      statuses: [
+        ...new Set(allVisible.map((job) => job.status || "found")),
+      ].sort(),
+    };
+  }, [activeTab, jobs, reviewJobs]);
+
+  const stats = useMemo(() => {
+    const actionable = jobs.filter(isWaitingJob);
+    const appliedToday = jobs.filter(
+      (job) => isAppliedJob(job) && isToday(job.updatedAt || job.appliedAt),
+    ).length;
+    return {
+      total: actionable.length,
+      apply: actionable.filter((job) => job.recommendation === "apply").length,
+      review: reviewJobs.length,
+      applied: jobs.filter(isAppliedJob).length,
+      saved: jobs.filter((job) => job.status === "saved").length,
+      archived: jobs.filter(isArchivedJob).length,
+      appliedToday,
+      learningEvents: feedback.length,
+      gmailJobs:
+        agentSummary?.gmailJobsTotal ||
+        jobs.filter((job) => /Gmail/i.test(String(job.source || ""))).length,
+    };
+  }, [jobs, reviewJobs, feedback, agentSummary]);
+
+  const currentTabCount = (tab) => {
+    if (tab === "agent") return agentSummary?.activeGmailJobs ?? "";
+    if (tab === "gmail" || tab === "roles") return "";
+    if (tab === "review") return stats.review;
+    if (tab === "applied") return stats.applied;
+    if (tab === "saved") return stats.saved;
+    if (tab === "archive") return stats.archived;
+    return stats.total;
+  };
+
   return (
-    <main dir="rtl" className="app-shell min-h-screen px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="aurora aurora-one" />
-        <div className="aurora aurora-two" />
-      </div>
-
+    <main
+      className="min-h-screen bg-[radial-gradient(circle_at_top_right,#dbeafe,transparent_35%),linear-gradient(135deg,#f8fafc,#eef2ff)] px-4 py-6 text-slate-950"
+      dir="rtl"
+    >
       <div className="mx-auto max-w-7xl">
-        <header className="relative overflow-hidden rounded-[2.2rem] border border-white/70 bg-white/80 shadow-2xl shadow-slate-300/45 backdrop-blur-xl">
-          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-indigo-500 via-fuchsia-500 to-emerald-400" />
-          <div className="grid gap-7 p-6 lg:grid-cols-[1fr_390px] lg:items-stretch lg:p-8">
-            <section className="flex flex-col justify-between gap-8">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-black text-indigo-700 shadow-sm">
-                  <Sparkles size={16} /> לוח משרות אישי
-                </div>
-                <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">
-                  משרות נקיות, ברורות ומוכנות לפעולה
-                </h1>
-                <p className="mt-4 max-w-3xl text-base font-semibold leading-8 text-slate-600 md:text-lg">
-                  במקום לעבור על רעש, המערכת מדרגת התאמה, מסמנת מה כבר נשלח, שומרת מה מעניין ולומדת מכל משרה שאתה מסיר.
-                </p>
+        <header className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/85 shadow-2xl shadow-slate-300/30 backdrop-blur-xl">
+          <div className="grid gap-5 p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-black text-indigo-700 ring-1 ring-indigo-100">
+                <MailCheck size={15} /> Gmail Agent + למידה
               </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={runFinder}
-                  disabled={loading}
-                  className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <RefreshCw size={18} className={loading ? "animate-spin" : "transition group-hover:rotate-45"} />
-                  {loading ? "סורק עכשיו" : "סרוק משרות חדשות"}
-                </button>
-                <button
-                  type="button"
-                  onClick={loadAll}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                >
-                  רענן רשימה
-                </button>
-              </div>
-            </section>
-
-            <aside className="rounded-[1.8rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-300/70">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-black text-indigo-200">יעד הגשות יומי</p>
-                  <p className="mt-2 text-4xl font-black tracking-tight">{stats.appliedToday}/{DAILY_GOAL}</p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-slate-300">
-                    כל משרה שסימנת כנשלחה מתווספת להתקדמות היומית.
-                  </p>
-                </div>
-                <div className={`rounded-3xl p-4 ${reachedDailyGoal ? "animate-goal-pop bg-emerald-400 text-emerald-950" : "bg-white/10 text-indigo-100"}`}>
-                  {reachedDailyGoal ? <PartyPopper size={34} /> : <Target size={34} />}
-                </div>
-              </div>
-
-              <div className="mt-6 h-4 overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${reachedDailyGoal ? "animate-progress-glow bg-gradient-to-l from-emerald-300 to-teal-400" : "bg-gradient-to-l from-indigo-400 to-fuchsia-400"}`}
-                  style={{ width: `${dailyProgress}%` }}
-                />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-xs font-black text-slate-300">
-                <span>התקדמות</span>
-                <span>{dailyProgress}%</span>
-              </div>
-
-              {reachedDailyGoal && (
-                <div className="mt-4 rounded-2xl bg-emerald-400/15 px-4 py-3 text-sm font-black text-emerald-100 ring-1 ring-emerald-300/25">
-                  יפה. עמדת ביעד היום.
-                </div>
-              )}
-            </aside>
-          </div>
-
-          {loading && (
-            <div className="border-t border-slate-200/80 bg-white/70 px-6 py-4">
-              <div className="flex items-center justify-between text-sm font-black text-slate-700">
-                <span>סריקה פעילה — התוצאות מתעדכנות תוך כדי</span>
-                <span>{scanProgress}%</span>
-              </div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-200">
-                <div className="h-full rounded-full bg-gradient-to-l from-indigo-500 via-fuchsia-500 to-emerald-400 transition-all duration-500" style={{ width: `${scanProgress}%` }} />
-              </div>
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+                סוכן המשרות האישי
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-slate-600">
+                Gmail הוא הסוכן המרכזי: אתרי המשרות שולחים התראות מסוננות למייל,
+                והמערכת ממיינת אותן ללטיפול, בדיקה ידנית, נשלחו וארכיון — בלי
+                לזרוק מיילים ממקורות אמינים רק בגלל ניקוד נמוך.
+              </p>
             </div>
-          )}
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              <button
+                type="button"
+                onClick={runFinder}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-60"
+              >
+                <RefreshCw
+                  size={18}
+                  className={loading ? "animate-spin" : ""}
+                />{" "}
+                סריקת אתרים
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("agent")}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <Inbox size={18} /> ניהול Gmail Agent
+              </button>
+            </div>
+          </div>
         </header>
 
-        {(message || error) && (
-          <div className={`mt-4 rounded-3xl border px-5 py-4 text-sm font-black shadow-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+        {message || error ? (
+          <div
+            className={`mt-4 rounded-3xl border px-5 py-4 text-sm font-black shadow-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
+          >
             {error || message}
           </div>
-        )}
+        ) : null}
 
         <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatTile
+            label="Gmail Agent"
+            value={stats.gmailJobs}
+            icon={MailCheck}
+            tone="purple"
+            hint="משרות שהגיעו מהמייל"
+          />
           <StatTile label="לטיפול עכשיו" value={stats.total} icon={BarChart3} />
-          <StatTile label="מומלץ לשלוח" value={stats.apply} icon={Sparkles} tone="green" />
-          <StatTile label="ממתינות" value={stats.waiting} icon={ClipboardCheck} tone="amber" />
-          <StatTile label="נשלחו" value={stats.applied} icon={CheckCircle2} tone="blue" />
-          <StatTile label="המערכת למדה" value={stats.learningEvents} icon={Trophy} tone="purple" hint="סירובים, שמירות והגשות" />
-          <StatTile label="בארכיון" value={stats.archived} icon={Network} tone="blue" hint="לא חוזרות לרשימה הפעילה" />
+          <StatTile
+            label="מומלץ לשלוח"
+            value={stats.apply}
+            icon={Sparkles}
+            tone="green"
+          />
+          <StatTile
+            label="בדיקה ידנית"
+            value={stats.review}
+            icon={ClipboardCheck}
+            tone="amber"
+          />
+          <StatTile
+            label="נשלחו"
+            value={stats.applied}
+            icon={CheckCircle2}
+            tone="blue"
+            hint={`${stats.appliedToday} היום`}
+          />
+          <StatTile
+            label="למידה"
+            value={stats.learningEvents}
+            icon={Trophy}
+            tone="purple"
+            hint="פידבקים ופעולות"
+          />
         </section>
 
-        {scanSummary && (
-          <section className="mt-4 overflow-hidden rounded-[2rem] border border-white/75 bg-white/85 p-5 shadow-xl shadow-slate-300/25 backdrop-blur-xl">
+        {scanSummary ? (
+          <section className="mt-4 rounded-[2rem] border border-white/75 bg-white/85 p-5 shadow-xl shadow-slate-300/25 backdrop-blur-xl">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700 ring-1 ring-emerald-100">
-                  <ShieldCheck size={15} /> מנוע איכות פעיל
-                </div>
-                <h2 className="mt-2 text-xl font-black text-slate-950">סריקה אחרונה: {stats.scannedLastRun} נסרקו · {stats.filteredLastRun} סוננו · {stats.total} ממתינות לטיפול</h2>
-                <p className="mt-1 text-sm font-semibold text-slate-500">הרשימה הראשית מציגה רק משרות שעברו מיקום, תפקיד, ניסיון, כפילויות ולמידה מהסירובים שלך.</p>
+                <h2 className="text-xl font-black text-slate-950">מצב מערכת</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Gmail Agent פעיל לצד הסריקות הרגילות. מקורות מייל אמינים
+                  נכנסים למערכת או לבדיקה ידנית, ומכל שליחה/שמירה/דחייה נוצרת
+                  למידה.
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(scanSummary.bySource || []).slice(0, 6).map((item) => (
-                  <span key={item.source} className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                  <span
+                    key={item.source}
+                    className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 ring-1 ring-slate-200"
+                  >
                     {hebrewSource(item.source)} · {item.kept}/{item.total}
                   </span>
                 ))}
               </div>
             </div>
           </section>
-        )}
-        
+        ) : null}
 
         <section className="sticky top-3 z-20 mt-6 rounded-[2rem] border border-white/75 bg-white/90 p-4 shadow-2xl shadow-slate-300/35 backdrop-blur-xl">
           <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-4">
             {tabs.map((tab) => {
-              const count =
-                tab.value === "gmail"
-                  ? ""
-                  : tab.value === "review"
-                    ? stats.reviewQueue
-                    : tab.value === "saved"
-                    ? stats.saved
-                    : tab.value === "applied"
-                      ? stats.applied
-                      : tab.value === "archive"
-                        ? stats.archived
-                        : stats.total;
-
+              const count = currentTabCount(tab.value);
               return (
                 <button
                   key={tab.value}
@@ -521,115 +531,181 @@ export default function App() {
                   className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition ${activeTab === tab.value ? "bg-slate-950 text-white shadow-lg shadow-slate-300" : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"}`}
                 >
                   {tab.label}
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${activeTab === tab.value ? "bg-white/20 text-white" : "bg-white text-slate-500"}`}>{count}</span>
+                  {count !== "" ? (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${activeTab === tab.value ? "bg-white/20 text-white" : "bg-white text-slate-500"}`}
+                    >
+                      {count}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </div>
 
-          {activeTab !== "gmail" && (
-          <div className="mt-4 grid gap-3 xl:grid-cols-[1.4fr_repeat(5,1fr)_auto] xl:items-end">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-extrabold text-slate-500">חיפוש</span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="חפש לפי משרה, חברה, מיקום או סיבה"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-3 pr-11 text-sm font-bold text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                />
-              </div>
-            </label>
+          {!["agent", "gmail", "roles"].includes(activeTab) ? (
+            <div className="mt-4 grid gap-3 xl:grid-cols-[1.4fr_repeat(5,1fr)_auto] xl:items-end">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-extrabold text-slate-500">
+                  חיפוש
+                </span>
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="חפש לפי משרה, חברה, מיקום או סיבה"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-3 pr-11 text-sm font-bold text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                  />
+                </div>
+              </label>
 
-            <SelectField label="התאמה" value={scoreFilter} onChange={setScoreFilter}>
-              <option value="all">הכול</option>
-              <option value="excellent">מעולה</option>
-              <option value="good">טובה</option>
-              <option value="medium">בינונית</option>
-              <option value="low">נמוכה</option>
-            </SelectField>
+              <SelectField
+                label="התאמה"
+                value={scoreFilter}
+                onChange={setScoreFilter}
+              >
+                <option value="all">הכול</option>
+                <option value="excellent">מעולה</option>
+                <option value="good">טובה</option>
+                <option value="medium">בינונית</option>
+                <option value="low">נמוכה</option>
+              </SelectField>
 
-            <SelectField label="סטטוס" value={statusFilter} onChange={setStatusFilter}>
-              <option value="all">כל הסטטוסים</option>
-              {filterOptions.statuses.map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </SelectField>
+              <SelectField
+                label="סטטוס"
+                value={statusFilter}
+                onChange={setStatusFilter}
+              >
+                <option value="all">כל הסטטוסים</option>
+                {filterOptions.statuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </SelectField>
 
-            <SelectField label="מקור" value={sourceFilter} onChange={setSourceFilter}>
-              <option value="all">כל המקורות</option>
-              {filterOptions.sources.map((source) => (
-                <option key={source} value={source}>{source}</option>
-              ))}
-            </SelectField>
+              <SelectField
+                label="מקור"
+                value={sourceFilter}
+                onChange={setSourceFilter}
+              >
+                <option value="all">כל המקורות</option>
+                {filterOptions.sources.map((source) => (
+                  <option key={source} value={source}>
+                    {source}
+                  </option>
+                ))}
+              </SelectField>
 
-            <SelectField label="מיקום" value={locationFilter} onChange={setLocationFilter}>
-              <option value="all">כל המיקומים</option>
-              {filterOptions.locations.map((location) => (
-                <option key={location} value={location}>{location}</option>
-              ))}
-            </SelectField>
+              <SelectField
+                label="מיקום"
+                value={locationFilter}
+                onChange={setLocationFilter}
+              >
+                <option value="all">כל המיקומים</option>
+                {filterOptions.locations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </SelectField>
 
-            <SelectField label="מיון" value={sortBy} onChange={setSortBy}>
-              <option value="score-desc">התאמה גבוהה קודם</option>
-              <option value="score-asc">התאמה נמוכה קודם</option>
-              <option value="newest">חדש קודם</option>
-              <option value="oldest">ישן קודם</option>
-              <option value="title">לפי שם</option>
-            </SelectField>
+              <SelectField label="מיון" value={sortBy} onChange={setSortBy}>
+                <option value="score-desc">התאמה גבוהה קודם</option>
+                <option value="score-asc">התאמה נמוכה קודם</option>
+                <option value="newest">חדש קודם</option>
+                <option value="oldest">ישן קודם</option>
+                <option value="title">לפי שם</option>
+              </SelectField>
 
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 shadow-sm transition hover:bg-slate-50"
-            >
-              <Filter size={17} /> נקה
-            </button>
-          </div>
-          )}
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 shadow-sm transition hover:bg-slate-50"
+              >
+                <Filter size={17} /> נקה
+              </button>
+            </div>
+          ) : null}
         </section>
 
-        {activeTab === "gmail" ? (
+        {activeTab === "agent" ? (
           <section className="mt-6">
-            <GmailJobsPanel onMessage={setMessage} onError={setError} />
+            <GmailAgentPanel
+              onMessage={setMessage}
+              onError={setError}
+              onImported={loadAll}
+            />
+          </section>
+        ) : activeTab === "gmail" ? (
+          <section className="mt-6">
+            <GmailJobsPanel
+              onMessage={setMessage}
+              onError={setError}
+              onImportedToJobs={loadAll}
+            />
+          </section>
+        ) : activeTab === "roles" ? (
+          <section className="mt-6">
+            <RoleManager onMessage={setMessage} onError={setError} />
           </section>
         ) : (
-        <section className="mt-6">
-          <div className="mb-4 flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-slate-950">{filteredJobs.length} משרות מוצגות</h2>
-              <p className="mt-1 text-sm font-semibold text-slate-500">
-                {activeTab === "review"
-                  ? "אלו משרות שהמערכת הורידה מהרשימה הראשית, אבל אפשר לבדוק ידנית."
-                  : activeTab === "archive"
-                    ? "משרות שהסרת נשמרות כאן כארכיון ולמידה, ולא חוזרות לרשימות הפעילות."
-                    : "הרשימות הפעילות מציגות רק משרות שעדיין צריך לטפל בהן."}
-              </p>
+          <section className="mt-6">
+            <div className="mb-4 flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  {filteredJobs.length} משרות מוצגות
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  {activeTab === "review"
+                    ? "משרות שלא נזרקו — הן ממתינות להחלטה שלך, וההחלטה תלמד את המערכת."
+                    : activeTab === "archive"
+                      ? "משרות שהוסרו נשמרות כאן כדי לא להעמיס על הרשימות הפעילות."
+                      : activeTab === "applied"
+                        ? "משרות שסימנת ששלחת אליהן."
+                        : activeTab === "saved"
+                          ? "משרות ששמרת להמשך."
+                          : "הרשימה הפעילה של משרות לטיפול."}
+                </p>
+              </div>
+              <div className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-500 shadow-sm ring-1 ring-slate-200">
+                {stats.applied} נשלחו · {stats.review} לבדיקה · {stats.archived}{" "}
+                בארכיון
+              </div>
             </div>
-            <div className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-500 shadow-sm ring-1 ring-slate-200">
-              {stats.applied} נשלחו · {stats.waiting} ממתינות · {stats.archived} בארכיון
-            </div>
-          </div>
 
-          {filteredJobs.length > 0 ? (
-            <div className="grid gap-4">
-              {filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id || job.url}
-                  job={job}
-                  manualReview={activeTab === "review"}
-                  sourceLabel={hebrewSource(job.source || job.via)}
-                  readOnly={activeTab === "archive" || activeTab === "applied"}
-                  onStatusChange={activeTab === "review" ? promoteReviewJob : updateStatus}
-                  onDelete={activeTab === "review" ? rejectReviewJob : deleteJob}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState activeTab={activeTab} onScan={runFinder} loading={loading} />
-          )}
-        </section>
+            {filteredJobs.length > 0 ? (
+              <div className="grid gap-4">
+                {filteredJobs.map((job) => (
+                  <JobCard
+                    key={job.id || job.url || job.title}
+                    job={job}
+                    manualReview={activeTab === "review"}
+                    sourceLabel={hebrewSource(job.source || job.via)}
+                    readOnly={
+                      activeTab === "archive" || activeTab === "applied"
+                    }
+                    onStatusChange={
+                      activeTab === "review" ? promoteReviewJob : updateStatus
+                    }
+                    onDelete={
+                      activeTab === "review" ? rejectReviewJob : deleteJob
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                activeTab={activeTab}
+                onScan={runFinder}
+                loading={loading}
+              />
+            )}
+          </section>
         )}
       </div>
     </main>

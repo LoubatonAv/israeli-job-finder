@@ -1,0 +1,140 @@
+[
+  {
+    "id": "alljobs",
+    "name": "AllJobs",
+    "domains": [
+      "alljob.co.il",
+      "alljobs.co.il"
+    ],
+    "enabled": true,
+    "notes": "התראות משרות מסוננות מ-AllJobs"
+  },
+  {
+    "id": "careerjet",
+    "name": "Careerjet Israel",
+    "domains": [
+      "careerjet.co.il"
+    ],
+    "enabled": true,
+    "notes": "מנוע משרות / התראות אם זמינות"
+  },
+  {
+    "id": "dialog",
+    "name": "Dialog",
+    "domains": [
+      "dialog.co.il"
+    ],
+    "enabled": true,
+    "notes": "השמה והייטק"
+  },
+  {
+    "id": "drushim",
+    "name": "Drushim",
+    "domains": [
+      "drushim.co.il"
+    ],
+    "enabled": true,
+    "notes": "סוכן דרושים / התראות משרות"
+  },
+  {
+    "id": "ethosia",
+    "name": "Ethosia",
+    "domains": [
+      "ethosia.co.il"
+    ],
+    "enabled": true,
+    "notes": "השמה והייטק"
+  },
+  {
+    "id": "glassdoor",
+    "name": "Glassdoor",
+    "domains": [
+      "glassdoor.com"
+    ],
+    "enabled": false,
+    "notes": "אופציונלי — להפעיל רק אם ההתראות מדויקות"
+  },
+  {
+    "id": "gotfriends",
+    "name": "GotFriends",
+    "domains": [
+      "gotfriends.co.il"
+    ],
+    "enabled": true,
+    "notes": "משרות הייטק / גיוס"
+  },
+  {
+    "id": "indeed",
+    "name": "Indeed Job Alerts",
+    "domains": [
+      "indeed.com",
+      "jobalert.indeed.com"
+    ],
+    "enabled": true,
+    "notes": "התראות Indeed בלבד"
+  },
+  {
+    "id": "jobkarov",
+    "name": "JobKarov",
+    "domains": [
+      "jobkarov.com"
+    ],
+    "enabled": true,
+    "notes": "לוח נוסף לבדיקה אם יש התראות מייל מדויקות"
+  },
+  {
+    "id": "jobmaster",
+    "name": "JobMaster",
+    "domains": [
+      "jobmaster.co.il"
+    ],
+    "enabled": true,
+    "notes": "סוכן משרות JobMaster"
+  },
+  {
+    "id": "jobnet",
+    "name": "Jobnet",
+    "domains": [
+      "jobnet.co.il"
+    ],
+    "enabled": true,
+    "notes": "התראות Jobnet"
+  },
+  {
+    "id": "linkedin",
+    "name": "LinkedIn Jobs",
+    "domains": [
+      "linkedin.com"
+    ],
+    "enabled": true,
+    "notes": "התראות LinkedIn Jobs"
+  },
+  {
+    "id": "newsource",
+    "name": "New Source",
+    "domains": [
+      "newsource.co.il"
+    ],
+    "enabled": true,
+    "notes": "?????? ?????"
+  },
+  {
+    "id": "nisha",
+    "name": "Nisha",
+    "domains": [
+      "nisha.co.il"
+    ],
+    "enabled": true,
+    "notes": "חברת השמה"
+  },
+  {
+    "id": "sqlink",
+    "name": "SQLink",
+    "domains": [
+      "sqlink.com",
+      "sqlink.co.il"
+    ],
+    "enabled": true,
+    "notes": "השמה והייטק"
+  }
+]

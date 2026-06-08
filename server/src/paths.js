@@ -18,3 +18,6 @@ export const SITE_SOURCES_FILE = path.join(DATA_DIR, 'siteSources.json');
 
 export const GMAIL_TOKENS_FILE = path.join(DATA_DIR, 'gmail-tokens.json');
 export const GMAIL_IMPORTS_FILE = path.join(DATA_DIR, 'gmail-imports.json');
+
+export const GMAIL_AGENT_STATE_FILE = path.join(DATA_DIR, 'gmail-agent-state.json');
+export const TRUSTED_JOB_SENDERS_FILE = path.join(DATA_DIR, 'trustedJobSenders.json');
