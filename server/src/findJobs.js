@@ -4,6 +4,7 @@ import {
   KEYWORDS_FILE,
   PROFILE_FILE,
   SCAN_AUDIT_FILE,
+  SCAN_PROGRESS_FILE,
   SITE_SOURCES_FILE,
 } from "./paths.js";
 import { readJson, writeJson } from "./fileStore.js";
@@ -384,16 +385,52 @@ function buildScanAudit({
   };
 }
 
+function getAuditMergeKey(job = {}) {
+  return getStableJobKey(job) || job.url || job.id || `${job.title || ""}|${job.company || ""}|${job.location || ""}`;
+}
+
 async function writeScanAuditFile({
   incomingJobs,
   scoredIncoming,
   jobsForThisRun,
+  mergeWithExisting = false,
 }) {
-  const audit = buildScanAudit({
+  let audit = buildScanAudit({
     incomingJobs,
     scoredIncoming,
     jobsForThisRun,
   });
+
+  if (mergeWithExisting) {
+    const existingAudit = await readJson(SCAN_AUDIT_FILE, { jobs: [], totals: {} });
+    const mergedJobs = new Map();
+
+    for (const job of Array.isArray(existingAudit.jobs) ? existingAudit.jobs : []) {
+      const key = getAuditMergeKey(job);
+      if (key) mergedJobs.set(key, job);
+    }
+
+    for (const job of audit.jobs) {
+      const key = getAuditMergeKey(job);
+      if (key) mergedJobs.set(key, job);
+    }
+
+    const jobs = [...mergedJobs.values()];
+    const kept = jobs.filter((job) => job.kept).length;
+    const previousIncoming = Number(existingAudit.totals?.incoming || 0);
+
+    audit = {
+      ...audit,
+      resumedFrom: existingAudit.createdAt || null,
+      jobs,
+      totals: {
+        incoming: previousIncoming + incomingJobs.length,
+        scored: jobs.length,
+        kept,
+        filtered: Math.max(jobs.length - kept, 0),
+      },
+    };
+  }
 
   await writeJson(SCAN_AUDIT_FILE, audit);
 
@@ -704,7 +741,196 @@ async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
   console.log(`Saved ${partialMerged.length} jobs so far`);
 }
 
-export async function findJobs({ useMock = false } = {}) {
+function normalizeProviderName(provider = "") {
+  const normalized = String(provider || "").trim().toLowerCase();
+  if (normalized === "site_sources") return "sites";
+  return normalized;
+}
+
+function getProviderStatsName(provider = "") {
+  return {
+    playwright: "Playwright",
+    drushim: "Drushim",
+    jobmaster: "JobMaster",
+    alljobs: "AllJobs",
+    matrix: "Matrix",
+    sites: "SiteSources",
+    serpapi: "SerpApi",
+  }[normalizeProviderName(provider)] || provider || "Unknown";
+}
+
+function buildScanSteps(queries = [], providers = []) {
+  const normalizedProviders = [
+    ...new Set(providers.map(normalizeProviderName).filter(Boolean)),
+  ];
+
+  return queries.flatMap((query, queryIndex) =>
+    normalizedProviders.map((provider, providerIndex) => ({
+      id: `${queryIndex}:${provider}`,
+      query,
+      queryIndex,
+      provider,
+      providerIndex,
+    })),
+  );
+}
+
+function getDefaultScanProgress() {
+  return {
+    running: false,
+    stopRequested: false,
+    stopped: false,
+    completed: false,
+    nextStepIndex: 0,
+    completedSteps: 0,
+    totalSteps: 0,
+    currentQuery: "",
+    currentProvider: "",
+    lastSavedAt: null,
+    startedAt: null,
+    finishedAt: null,
+  };
+}
+
+export async function getScanProgress() {
+  return readJson(SCAN_PROGRESS_FILE, getDefaultScanProgress());
+}
+
+async function writeScanProgress(patch = {}) {
+  const current = await getScanProgress();
+  const next = {
+    ...getDefaultScanProgress(),
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await writeJson(SCAN_PROGRESS_FILE, next);
+  return next;
+}
+
+export async function requestScanStop() {
+  return writeScanProgress({ stopRequested: true });
+}
+
+async function shouldStopScan() {
+  const progress = await getScanProgress();
+  return Boolean(progress?.stopRequested);
+}
+
+async function searchProviderForQuery({ provider, query, apiKey, siteSources }) {
+  const normalizedProvider = normalizeProviderName(provider);
+  const statsName = getProviderStatsName(normalizedProvider);
+
+  if (normalizedProvider === "playwright") {
+    console.log(`Searching Playwright: "${query}"`);
+    const results = await searchWithPlaywright({ query });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizePlaywrightJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "drushim") {
+    console.log(`Searching Drushim: "${query}"`);
+    const results = await searchDrushim({ query });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeDrushimJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "jobmaster") {
+    console.log(`Searching JobMaster: "${query}"`);
+    const results = await searchJobMaster({ query });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeJobMasterJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "alljobs") {
+    console.log(`Searching AllJobs: "${query}"`);
+    const results = await searchAllJobs({ query });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeAllJobsJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "matrix") {
+    console.log(`Searching Matrix: "${query}"`);
+    const results = await searchMatrix({ query });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeMatrixJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "sites") {
+    console.log(`Searching extra site sources: "${query}"`);
+    const results = await searchSiteSources({ query, siteSources });
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeSiteSourceJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  if (normalizedProvider === "serpapi") {
+    console.log(`Searching SerpApi: "${query}"`);
+    const data = await searchGoogleOrganic({
+      apiKey,
+      query,
+      location: "Israel",
+    });
+
+    const results = data.organic_results || [];
+    addProviderStats(statsName, { raw: results.length });
+
+    const normalizedJobs = results
+      .filter((result) => result.link && result.title)
+      .map((result) => normalizeOrganicJob(result, query))
+      .filter((job) => job.status !== "skipped");
+
+    addProviderStats(statsName, { normalized: normalizedJobs.length });
+    return normalizedJobs;
+  }
+
+  console.warn(`Unknown provider skipped: ${provider}`);
+  return [];
+}
+
+export async function findJobs({ useMock = false, resume = false, batchSize = 0 } = {}) {
   resetScanStats();
 
   const [profile, keywords, existingJobs, feedback, siteSources] = await Promise.all([
@@ -716,6 +942,8 @@ export async function findJobs({ useMock = false } = {}) {
   ]);
 
   let incomingJobs = [];
+  let stopped = false;
+  let stopReason = "";
 
   if (useMock) {
     incomingJobs = getMockJobs();
@@ -726,8 +954,7 @@ export async function findJobs({ useMock = false } = {}) {
     });
   } else {
     const apiKey = process.env.SERPAPI_API_KEY;
-    const searchProviders = getSearchProviders();
-
+    const searchProviders = getSearchProviders().map(normalizeProviderName);
     const needsSerpApi = usesProvider(searchProviders, "serpapi");
 
     if (needsSerpApi && (!apiKey || apiKey === "put_your_key_here")) {
@@ -737,273 +964,142 @@ export async function findJobs({ useMock = false } = {}) {
     }
 
     const roleProfileQueries = getRoleProfiles().flatMap((profile) => profile.queries || []);
-    const allQueries = [
+    const maxQueries = Number.parseInt(process.env.SCAN_MAX_QUERIES || "0", 10);
+    const allQueriesRaw = [
       ...(keywords.queries || []),
       ...(keywords.siteQueries || []),
       ...roleProfileQueries,
     ].filter(Boolean);
+    const allQueries = Number.isFinite(maxQueries) && maxQueries > 0
+      ? allQueriesRaw.slice(0, maxQueries)
+      : allQueriesRaw;
 
-    for (const query of allQueries) {
-      // Playwright
-      if (usesProvider(searchProviders, "playwright")) {
-        try {
-          console.log(`Searching Playwright: "${query}"`);
+    const steps = buildScanSteps(allQueries, searchProviders);
+    const previousProgress = await getScanProgress();
+    const startStepIndex = resume
+      ? Math.max(0, Math.min(Number(previousProgress.nextStepIndex || 0), steps.length))
+      : 0;
+    const safeBatchSize = Number.isFinite(Number(batchSize)) && Number(batchSize) > 0
+      ? Number(batchSize)
+      : Number.parseInt(process.env.SCAN_BATCH_SIZE || "0", 10);
 
-          const results = await searchWithPlaywright({ query });
-          addProviderStats("Playwright", { raw: results.length });
+    await writeScanProgress({
+      running: true,
+      stopRequested: false,
+      stopped: false,
+      completed: false,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+      nextStepIndex: startStepIndex,
+      completedSteps: startStepIndex,
+      totalSteps: steps.length,
+      currentQuery: "",
+      currentProvider: "",
+      message: resume ? "ממשיך סריקה מהמקום שבו עצרת" : "מתחיל סריקה חדשה",
+    });
 
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizePlaywrightJob(result, query))
-            .filter((job) => job.status !== "skipped");
+    let completedThisRun = 0;
 
-          addProviderStats("Playwright", { normalized: normalizedJobs.length });
+    for (let stepIndex = startStepIndex; stepIndex < steps.length; stepIndex += 1) {
+      const step = steps[stepIndex];
+      const statsName = getProviderStatsName(step.provider);
 
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("Playwright", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("Playwright", { errors: 1 });
-          console.warn(`Skipped Playwright query "${query}": ${error.message}`);
-        }
+      if (await shouldStopScan()) {
+        stopped = true;
+        stopReason = "user_stop";
+        break;
       }
 
-      // Drushim
-      if (usesProvider(searchProviders, "drushim")) {
-        try {
-          console.log(`Searching Drushim: "${query}"`);
+      if (Number.isFinite(safeBatchSize) && safeBatchSize > 0 && completedThisRun >= safeBatchSize) {
+        stopped = true;
+        stopReason = "batch_limit";
+        break;
+      }
 
-          const results = await searchDrushim({ query });
-          addProviderStats("Drushim", { raw: results.length });
+      await writeScanProgress({
+        running: true,
+        currentQuery: step.query,
+        currentProvider: statsName,
+        nextStepIndex: stepIndex,
+        completedSteps: stepIndex,
+        totalSteps: steps.length,
+        message: `סורק ${statsName}: ${step.query}`,
+      });
 
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeDrushimJob(result, query))
-            .filter((job) => job.status !== "skipped");
+      try {
+        const normalizedJobs = await searchProviderForQuery({
+          provider: step.provider,
+          query: step.query,
+          apiKey,
+          siteSources,
+        });
 
-          addProviderStats("Drushim", { normalized: normalizedJobs.length });
+        incomingJobs.push(...normalizedJobs);
 
-          incomingJobs.push(...normalizedJobs);
+        const scoredPartialJobs = normalizedJobs.map((job) => ({
+          ...job,
+          ...scoreJob(job, profile, keywords, feedback),
+        }));
 
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
+        addProviderStats(statsName, { scored: scoredPartialJobs.length });
 
-          addProviderStats("Drushim", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("Drushim", { errors: 1 });
-          console.warn(`Skipped Drushim query "${query}": ${error.message}`);
+        const currentJobs = await readJson(JOBS_FILE, []);
+        await savePartialJobs({ currentJobs, scoredPartialJobs });
+      } catch (error) {
+        addProviderStats(statsName, { errors: 1 });
+        console.warn(`Skipped ${statsName} query "${step.query}": ${error.message}`);
+        if (step.provider !== "playwright" && step.provider !== "serpapi") {
           console.warn(error.stack || error);
         }
       }
 
-      // JobMaster
-      if (usesProvider(searchProviders, "jobmaster")) {
-        try {
-          console.log(`Searching JobMaster: "${query}"`);
+      completedThisRun += 1;
 
-          const results = await searchJobMaster({ query });
-          addProviderStats("JobMaster", { raw: results.length });
+      await writeScanProgress({
+        running: true,
+        nextStepIndex: stepIndex + 1,
+        completedSteps: stepIndex + 1,
+        totalSteps: steps.length,
+        currentQuery: step.query,
+        currentProvider: statsName,
+        lastSavedAt: new Date().toISOString(),
+        message: `נשמרה התקדמות: ${stepIndex + 1}/${steps.length}`,
+      });
+    }
 
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeJobMasterJob(result, query))
-            .filter((job) => job.status !== "skipped");
+    const latestProgress = await getScanProgress();
+    const nextStepIndex = Math.max(0, Math.min(Number(latestProgress.nextStepIndex || 0), steps.length));
 
-          addProviderStats("JobMaster", { normalized: normalizedJobs.length });
-
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("JobMaster", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("JobMaster", { errors: 1 });
-          console.warn(`Skipped JobMaster query "${query}": ${error.message}`);
-          console.warn(error.stack || error);
-        }
-      }
-
-      // AllJobs
-      if (usesProvider(searchProviders, "alljobs")) {
-        try {
-          console.log(`Searching AllJobs: "${query}"`);
-
-          const results = await searchAllJobs({ query });
-          addProviderStats("AllJobs", { raw: results.length });
-
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeAllJobsJob(result, query))
-            .filter((job) => job.status !== "skipped");
-          addProviderStats("AllJobs", { normalized: normalizedJobs.length });
-
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("AllJobs", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("AllJobs", { errors: 1 });
-          console.warn(`Skipped AllJobs query "${query}": ${error.message}`);
-          console.warn(error.stack || error);
-        }
-      }
-
-      // Matrix
-      if (usesProvider(searchProviders, "matrix")) {
-        try {
-          console.log(`Searching Matrix: "${query}"`);
-
-          const results = await searchMatrix({ query });
-          addProviderStats("Matrix", { raw: results.length });
-
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeMatrixJob(result, query))
-            .filter((job) => job.status !== "skipped");
-
-          addProviderStats("Matrix", { normalized: normalizedJobs.length });
-
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("Matrix", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("Matrix", { errors: 1 });
-          console.warn(`Skipped Matrix query "${query}": ${error.message}`);
-          console.warn(error.stack || error);
-        }
-      }
-
-      // Site sources via Google/Playwright
-      if (usesProvider(searchProviders, "sites") || usesProvider(searchProviders, "site_sources")) {
-        try {
-          console.log(`Searching extra site sources: "${query}"`);
-
-          const results = await searchSiteSources({ query, siteSources });
-          addProviderStats("SiteSources", { raw: results.length });
-
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeSiteSourceJob(result, query))
-            .filter((job) => job.status !== "skipped");
-
-          addProviderStats("SiteSources", { normalized: normalizedJobs.length });
-
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("SiteSources", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("SiteSources", { errors: 1 });
-          console.warn(`Skipped site sources query "${query}": ${error.message}`);
-          console.warn(error.stack || error);
-        }
-      }
-
-      // SerpApi / Google Organic
-      if (usesProvider(searchProviders, "serpapi")) {
-        try {
-          console.log(`Searching SerpApi: "${query}"`);
-
-          const data = await searchGoogleOrganic({
-            apiKey,
-            query,
-            location: "Israel",
-          });
-
-          const results = data.organic_results || [];
-          addProviderStats("SerpApi", { raw: results.length });
-
-          const normalizedJobs = results
-            .filter((result) => result.link && result.title)
-            .map((result) => normalizeOrganicJob(result, query))
-            .filter((job) => job.status !== "skipped");
-          addProviderStats("SerpApi", { normalized: normalizedJobs.length });
-
-          incomingJobs.push(...normalizedJobs);
-
-          const scoredPartialJobs = normalizedJobs.map((job) => ({
-            ...job,
-            ...scoreJob(job, profile, keywords, feedback),
-          }));
-
-          addProviderStats("SerpApi", { scored: scoredPartialJobs.length });
-
-          const currentJobs = await readJson(JOBS_FILE, []);
-
-          await savePartialJobs({
-            currentJobs,
-            scoredPartialJobs,
-          });
-        } catch (error) {
-          addProviderStats("SerpApi", { errors: 1 });
-          console.warn(`Skipped SerpApi query "${query}": ${error.message}`);
-        }
-      }
+    if (stopped || nextStepIndex < steps.length) {
+      stopped = true;
+      await writeScanProgress({
+        running: false,
+        stopRequested: false,
+        stopped: true,
+        completed: false,
+        finishedAt: new Date().toISOString(),
+        nextStepIndex,
+        completedSteps: nextStepIndex,
+        totalSteps: steps.length,
+        message:
+          stopReason === "batch_limit"
+            ? "הסריקה נעצרה אחרי מקטע מוגדר. אפשר להמשיך מאותה נקודה."
+            : "הסריקה נעצרה. אפשר להמשיך מאותה נקודה.",
+      });
+    } else {
+      await writeScanProgress({
+        running: false,
+        stopRequested: false,
+        stopped: false,
+        completed: true,
+        finishedAt: new Date().toISOString(),
+        nextStepIndex: steps.length,
+        completedSteps: steps.length,
+        totalSteps: steps.length,
+        currentQuery: "",
+        currentProvider: "",
+        message: "הסריקה הסתיימה",
+      });
     }
   }
 
@@ -1021,11 +1117,13 @@ export async function findJobs({ useMock = false } = {}) {
     incomingJobs,
     scoredIncoming,
     jobsForThisRun,
+    mergeWithExisting: resume,
   });
 
   printDebugJobPreview(jobsForThisRun, "DEBUG FINAL JOB PREVIEW");
 
-  const existingById = new Map(existingJobs.map((job) => [job.id, job]));
+  const latestExistingJobs = await readJson(JOBS_FILE, existingJobs);
+  const existingById = new Map(latestExistingJobs.map((job) => [job.id, job]));
   const newJobs = [];
 
   for (const job of jobsForThisRun) {
@@ -1055,12 +1153,16 @@ export async function findJobs({ useMock = false } = {}) {
     merged,
   });
 
+  const progress = await getScanProgress();
+
   return {
     scanned: incomingJobs.length,
     newJobs: newJobs.length,
     totalJobs: merged.length,
     jobs: merged,
     added: newJobs,
+    stopped,
+    progress,
   };
 }
 

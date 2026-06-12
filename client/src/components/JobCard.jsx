@@ -16,11 +16,18 @@ import {
 } from "lucide-react";
 
 const rejectionReasons = [
-  { value: "location", label: "מיקום לא מתאים" },
-  { value: "shifts", label: "משמרות / לילות" },
-  { value: "phone", label: "טלפוני מדי" },
-  { value: "senior", label: "בכיר / ניהולי מדי" },
   { value: "wrong_role", label: "תפקיד לא מתאים" },
+  { value: "location", label: "מיקום לא מתאים" },
+  { value: "senior", label: "בכיר / ניהולי מדי" },
+  { value: "experience", label: "דורש יותר מדי ניסיון" },
+  { value: "not_junior", label: "לא מספיק ג׳וניור / לא כניסה" },
+  { value: "phone", label: "טלפוני / מוקד" },
+  { value: "customer_service", label: "שירות לקוחות / תמיכה" },
+  { value: "sales", label: "מכירות / ביזנס" },
+  { value: "shifts", label: "משמרות / לילות / שבתות" },
+  { value: "onsite", label: "נוכחות במשרד לא מתאימה" },
+  { value: "tech_stack", label: "טכנולוגיות לא מתאימות" },
+  { value: "already_applied", label: "כבר שלחתי / כפילות" },
   { value: "other", label: "סיבה אחרת" },
 ];
 

@@ -38,7 +38,7 @@ export function extractSignals(job = {}) {
     signals.badSignals.push("senior");
   }
 
-  if (hasAny(text, [/מכירות/i, /sales/i])) {
+  if (hasAny(text, [/מכירות/i, /\\bsales\\b/i, /sales\\s*(?:rep|representative|manager)/i, /business\\s*development/i, /account\\s*executive/i])) {
     signals.hasSalesSignal = true;
     signals.badSignals.push("sales");
   }

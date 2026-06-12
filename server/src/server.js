@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { load as loadHtml } from "cheerio";
@@ -14,7 +14,7 @@ import {
   TRUSTED_JOB_SENDERS_FILE,
 } from "./paths.js";
 import { readJson, writeJson } from "./fileStore.js";
-import { findJobs } from "./findJobs.js";
+import { findJobs, getScanProgress, requestScanStop } from "./findJobs.js";
 import { createFeedbackEntry } from "./learning.js";
 import { createJobId, uniqueById } from "./utils.js";
 import { enrichJob } from "./enrichJob.js";
@@ -665,7 +665,25 @@ function getGmailMailText(mail = {}) {
     .join(" ");
 }
 
+function isDrushimAppliedSummaryMail(mail = {}) {
+  const text = [
+    mail.title,
+    mail.snippet,
+    mail.bodyText,
+    mail.sender,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return /ריכזנו לך את כל המשרות שהגשת אליהן קורות חיים היום|קורות החיים נשלחו בהצלחה למשרה זו|קורות החיים שלך נשלחו בהצלחה ל\s*\d+\s*משרות|קורות החיים שלך נשלחו בהצלחה/i.test(
+    text,
+  );
+}
 function isNonJobGmailMail(mail = {}) {
+  if (isDrushimAppliedSummaryMail(mail)) {
+    return true;
+  }
+
   const text = getGmailMailText(mail);
 
   return /password\s*reset|security\s*alert|verification\s*code|two[-\s]*factor|2fa|otp|login\s*code|temporary\s*password|temporary\s*login|auth\s*code|קוד\s*ה?אימות|קוד\s*כניסה|קוד\s*זמני|הקוד\s*הזמני|אימות\s*כניסה|סיסמה\s*זמנית|סיסמא\s*זמנית|הסיסמה\s*הזמנית|הסיסמא\s*הזמנית|חשבונית|receipt|invoice|billing|payment|תשלום/i.test(
@@ -674,6 +692,10 @@ function isNonJobGmailMail(mail = {}) {
 }
 
 function isGmailDigestMail(mail = {}, links = []) {
+  if (isDrushimAppliedSummaryMail(mail)) {
+    return true;
+  }
+
   const text = getGmailMailText(mail);
 
   if (links.length > 1) return true;
@@ -1108,10 +1130,24 @@ function isDrushimMail(mail = {}) {
   );
 }
 
+function isDrushimNewJobsAlert(mail = {}) {
+  const text = [
+    mail.title,
+    mail.snippet,
+    mail.bodyText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return /משרות חדשות שפורסמו|יש לנו בשבילך\s+\d+\s+משרות חדשות|התואמות להגדרות שלך|המתאימות להגדרות שלך|פורסמו בשעות האחרונות/i.test(
+    text,
+  );
+}
+
 function isBadDrushimAnchor(title = "", href = "") {
   const text = `${title} ${href}`.toLowerCase();
 
-  return /youtube|linkedin|facebook|fb|google|apple|unsubscribe|unsubscribed|הסרה|להסרה|הסר|דיוורים|privacy|terms|בואו לפגוש/i.test(
+  return /youtube|linkedin|facebook|fb|google|apple|unsubscribe|unsubscribed|הסרה|להסרה|הסר|דיוורים|privacy|terms|בואו לפגוש|לתצוגת כל המשרות|משרות נוספות/i.test(
     text,
   );
 }
@@ -1119,13 +1155,12 @@ function isBadDrushimAnchor(title = "", href = "") {
 function looksLikeDrushimJobTitle(title = "") {
   const text = cleanText(title);
 
-  if (text.length < 5 || text.length > 140) return false;
+  if (text.length < 5 || text.length > 160) return false;
   if (/^(youtube|linkedin|fb|google|apple|link)$/i.test(text)) return false;
+  if (/משרות נוספות|לצפייה במשרה|לתצוגת כל המשרות|בואו לפגוש/i.test(text)) return false;
 
-  return (
-    /דרוש|דרושה|דרוש\/ה|מיישם|מטמיע|בודק|בודקת|QA|Test|Supervisor|כלכלן|כלכלנית|מפתח|מפתחת|אוטומציה|מערכות|תוכנה|Help\s*desk|Data|Back\s*Office|Developer|Engineer/i.test(
-      text,
-    ) || text.length >= 18
+  return /דרוש|דרושה|דרוש\/ה|מיישם|מטמיע|בודק|בודקת|QA|Test|Supervisor|כלכלן|כלכלנית|מפתח|מפתחת|אוטומציה|מערכות|תוכנה|Help\s*desk|Data|Back\s*Office|Developer|Engineer|כתב|כתבת|מדריך|מדריכה|טכני|טכנית/i.test(
+    text,
   );
 }
 
@@ -1157,7 +1192,10 @@ function getDrushimHtmlLines(mail = {}) {
 
 function getDrushimJobAnchors(mail = {}) {
   const html = String(mail.bodyHtml || "");
-  if (!html) return [];
+
+  if (!html) {
+    return [];
+  }
 
   const $ = loadHtml(html);
   const anchors = [];
@@ -1172,6 +1210,7 @@ function getDrushimJobAnchors(mail = {}) {
     if (!looksLikeDrushimJobTitle(title)) return;
 
     const key = `${title}|${href}`.toLowerCase();
+
     if (seen.has(key)) return;
 
     seen.add(key);
@@ -1205,76 +1244,98 @@ function findDrushimTitleLineIndex(lines = [], title = "", startAt = 0) {
 }
 
 function isDrushimFooterLine(line = "") {
-  return /בואו לפגוש אותנו|youtube|linkedin|fb|google|apple|להסרה|דיוורים|unsubscribed@|דרושים\s*IL\s*-|מגשימים\s*1|פתח\s*תקווה/i.test(
+  return /משרות נוספות|לצפייה במשרה|לתצוגת כל המשרות|בואו לפגוש אותנו|youtube|linkedin|fb|google|apple|להסרה|דיוורים|unsubscribed@|דרושים\s*IL\s*-|מגשימים\s*1|פתח\s*תקווה/i.test(
     line,
   );
 }
 
-function splitDrushimLocationCompany(value = "") {
+function getDrushimKnownLocations() {
+  return [
+    "חיפה",
+    "קריית ביאליק",
+    "קרית ביאליק",
+    "קריית אתא",
+    "קרית אתא",
+    "בני ברק",
+    "עכו",
+    "כרמיאל",
+    "נשר",
+    "יקנעם",
+    "יוקנעם",
+    "קריות",
+    "צפון",
+    "גליל",
+    "תל אביב",
+    "רמת גן",
+    "פתח תקווה",
+    "פתח תקוה",
+    "לוד",
+    "Remote",
+    "מרחוק",
+  ];
+}
+
+function splitDrushimMetaLine(value = "") {
   const text = cleanText(value)
     .replace(/\s{2,}/g, " ")
-    .replace(/\s+-\s*$/, "")
     .trim();
 
   if (!text) {
     return {
-      location: "",
       company: "",
+      location: "",
+      jobType: "",
     };
   }
 
-  const hiddenMatch = text.match(/^(.*?)\s+-\s*חסוי\s*-?$/i);
-  if (hiddenMatch) {
-    return {
-      location: cleanText(hiddenMatch[1]),
-      company: "חסוי",
-    };
-  }
-
-  const knownCompanySuffixes = [
-    "Calanit by One",
-    "SQLink",
-    "matrix",
-    "Matrix",
-    "Ness",
-    "בזן -בתי זיקוק בחיפה",
-    "בזן",
-  ];
-
-  for (const company of knownCompanySuffixes.sort((a, b) => b.length - a.length)) {
-    const regex = new RegExp(`^(.*?)\\s+${escapeRegExp(company)}$`, "i");
-    const match = text.match(regex);
-
-    if (match) {
-      return {
-        location: cleanText(match[1]),
-        company,
-      };
-    }
-  }
-
-  const englishCompanyMatch = text.match(/^(.*?)\s+([A-Za-z][A-Za-z0-9&.'() -]{1,60})$/);
-  if (englishCompanyMatch) {
-    return {
-      location: cleanText(englishCompanyMatch[1]),
-      company: cleanText(englishCompanyMatch[2]),
-    };
-  }
-
-  const locationPrefixMatch = text.match(
-    /^(חיפה|קריית ביאליק|קרית ביאליק|בני ברק|עכו|כרמיאל|נשר|יקנעם|יוקנעם|קריות|צפון|Remote|מרחוק)\s+(.+)$/i,
+  const jobTypeMatch = text.match(
+    /\s+(משרה מלאה|משרה חלקית|משמרות|עבודה היברידית|היברידית|עבודה מהבית|ללא ניסיון|ללא נסיון|אקדמאים ללא ניסיון|סטודנטים|1-2 שנים|2-3 שנים|3-4 שנים|4-5 שנים|5\+ שנים|זמנית|קבועה).*$/i,
   );
 
-  if (locationPrefixMatch) {
+  const jobType = cleanText(jobTypeMatch?.[1] || "");
+  const metaWithoutType = jobTypeMatch
+    ? cleanText(text.slice(0, jobTypeMatch.index))
+    : text;
+
+  const locations = getDrushimKnownLocations()
+    .map((location) => escapeRegExp(location))
+    .join("|");
+
+  const companyFirstRegex = new RegExp(`^(.+?)\\s+(${locations}(?:\\s*,\\s*(?:${locations}))*)$`, "i");
+  const companyFirstMatch = metaWithoutType.match(companyFirstRegex);
+
+  if (companyFirstMatch) {
     return {
-      location: cleanText(locationPrefixMatch[1]),
-      company: cleanText(locationPrefixMatch[2]),
+      company: cleanText(companyFirstMatch[1]),
+      location: cleanText(companyFirstMatch[2]),
+      jobType,
+    };
+  }
+
+  const hiddenMatch = metaWithoutType.match(/^(.*?)\s+-\s*חסוי\s*-?$/i);
+
+  if (hiddenMatch) {
+    return {
+      company: "חסוי",
+      location: cleanText(hiddenMatch[1]),
+      jobType,
+    };
+  }
+
+  const englishCompanyAtEndMatch = metaWithoutType.match(/^(.*?)\s+([A-Za-z][A-Za-z0-9&.'() -]{1,60})$/);
+
+  if (englishCompanyAtEndMatch) {
+    return {
+      location: cleanText(englishCompanyAtEndMatch[1]),
+      company: cleanText(englishCompanyAtEndMatch[2]),
+      jobType,
     };
   }
 
   return {
-    location: text,
     company: cleanSenderName("Drushim"),
+    location: metaWithoutType,
+    jobType,
   };
 }
 
@@ -1286,10 +1347,12 @@ function cleanDrushimDescriptionLines(lines = []) {
 
     if (!value) continue;
     if (isDrushimFooterLine(value)) break;
-    if (/^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(value)) continue;
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) continue;
-    if (/^היי\s+אבנר$/i.test(value)) continue;
-    if (/^ריכזנו לך את כל המשרות/i.test(value)) continue;
+    if (/^היי\s+אבנר,?$/i.test(value)) continue;
+    if (/^יש לנו בשבילך/i.test(value)) continue;
+    if (/^המתאימות להגדרות שלך/i.test(value)) continue;
+    if (/^התואמות להגדרות שלך/i.test(value)) continue;
+    if (/^פורסמו בשעות האחרונות/i.test(value)) continue;
 
     cleaned.push(value);
   }
@@ -1297,8 +1360,47 @@ function cleanDrushimDescriptionLines(lines = []) {
   return cleaned.join("\n").trim();
 }
 
+function dedupeDrushimParsedJobs(jobs = []) {
+  const byKey = new Map();
+
+  for (const job of jobs) {
+    const key = [
+      job.title,
+      job.company,
+      job.location,
+    ]
+      .filter(Boolean)
+      .join("|")
+      .toLowerCase();
+
+    if (!key) continue;
+
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, job);
+      continue;
+    }
+
+    const shouldReplace =
+      (!existing.url && job.url) ||
+      (
+        Boolean(existing.url) === Boolean(job.url) &&
+        String(job.description || "").length > String(existing.description || "").length
+      );
+
+    if (shouldReplace) {
+      byKey.set(key, job);
+    }
+  }
+
+  return [...byKey.values()];
+}
+
 function parseDrushimDigestJobs(mail = {}) {
   if (!isDrushimMail(mail)) return [];
+  if (isDrushimAppliedSummaryMail(mail)) return [];
+  if (!isDrushimNewJobsAlert(mail)) return [];
 
   const anchors = getDrushimJobAnchors(mail);
   const lines = getDrushimHtmlLines(mail);
@@ -1306,11 +1408,11 @@ function parseDrushimDigestJobs(mail = {}) {
   if (!anchors.length || !lines.length) return [];
 
   const jobs = [];
-  const seen = new Set();
   let searchFrom = 0;
 
   anchors.forEach((anchor, index) => {
     const titleIndex = findDrushimTitleLineIndex(lines, anchor.title, searchFrom);
+
     if (titleIndex < 0) return;
 
     const nextAnchor = anchors[index + 1];
@@ -1324,37 +1426,24 @@ function parseDrushimDigestJobs(mail = {}) {
     const metaLineIndex = blockLines.findIndex(
       (line) =>
         line &&
-        !/^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(line) &&
-        !/^היי\s+אבנר$/i.test(line) &&
-        !/^ריכזנו לך/i.test(line) &&
-        !isDrushimFooterLine(line),
+        !isDrushimFooterLine(line) &&
+        !/^היי\s+אבנר,?$/i.test(line) &&
+        !/^יש לנו בשבילך/i.test(line),
     );
 
     if (metaLineIndex < 0) return;
 
     const metaLine = blockLines[metaLineIndex];
-    const { location, company } = splitDrushimLocationCompany(metaLine);
-
-    const sentLineIndex = blockLines.findIndex((line) =>
-      /^קורות החיים נשלחו בהצלחה למשרה זו$/i.test(line),
-    );
-
-    const descriptionStartIndex =
-      sentLineIndex >= 0 ? sentLineIndex + 1 : metaLineIndex + 1;
+    const { company, location, jobType } = splitDrushimMetaLine(metaLine);
 
     const description = cleanDrushimDescriptionLines(
-      blockLines.slice(descriptionStartIndex),
+      blockLines.slice(metaLineIndex + 1),
     );
 
     const title = cleanText(anchor.title);
-    const url = normalizeGmailJobUrl(anchor.url || "");
+    const url = anchor.url || "";
 
     if (!title || !company || !location) return;
-
-    const key = `${title}|${company}|${location}|${url}`.toLowerCase();
-    if (seen.has(key)) return;
-
-    seen.add(key);
 
     jobs.push({
       title,
@@ -1363,7 +1452,12 @@ function parseDrushimDigestJobs(mail = {}) {
       source: "Gmail · Drushim",
       sourceQuery: "Gmail import · Drushim digest split",
       url,
-      description,
+      description: [
+        jobType ? `סוג משרה: ${jobType}` : "",
+        description,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       snippet: description.slice(0, 280),
       gmailMessageId: mail.gmailMessageId,
       gmailThreadId: mail.threadId,
@@ -1378,7 +1472,7 @@ function parseDrushimDigestJobs(mail = {}) {
     searchFrom = titleIndex + 1;
   });
 
-  return jobs;
+  return dedupeDrushimParsedJobs(jobs);
 }
 
 function parseGmailDigestJobs(mail = {}) {
@@ -1753,8 +1847,28 @@ app.get("/api/jobs/review", async (req, res, next) => {
 
 app.post("/api/jobs/find", async (req, res, next) => {
   try {
-    const result = await findJobs({ useMock: false });
+    const result = await findJobs({
+      useMock: false,
+      resume: Boolean(req.body?.resume),
+      batchSize: Number(req.body?.batchSize || 0),
+    });
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/jobs/scan-progress", async (req, res, next) => {
+  try {
+    res.json(await getScanProgress());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/jobs/scan-stop", async (req, res, next) => {
+  try {
+    res.json(await requestScanStop());
   } catch (error) {
     next(error);
   }
@@ -2360,11 +2474,6 @@ app.post("/api/gmail/cleanup-fake-splits", async (req, res, next) => {
   }
 });
 
-app.use((error, req, res, next) => {
-  console.error(error);
-  res.status(500).json({ error: error.message || "שגיאת שרת" });
-});
-
 app.post("/api/gmail-agent/jobs/:id/status", async (req, res, next) => {
   try {
     const id = decodeURIComponent(req.params.id || "");
@@ -2410,25 +2519,30 @@ app.post("/api/gmail-agent/jobs/:id/status", async (req, res, next) => {
 
     await writeJson(JOBS_FILE, safeJobs);
 
-    const feedback = await readJson(FEEDBACK_FILE, []);
-    const safeFeedback = Array.isArray(feedback) ? feedback : [];
+    const shouldCreateFeedback =
+      status === "saved" ||
+      status === "applied" ||
+      status === "interview" ||
+      status === "rejected" ||
+      status === "skipped" ||
+      status === "archived";
 
-    safeFeedback.unshift({
-      id: `feedback-${Date.now()}`,
-      jobId: updatedJob.id,
-      jobTitle: updatedJob.title,
-      source: updatedJob.source,
-      action: status,
-      reason,
-      createdAt: now,
-      from: "gmail-agent-ui",
-      location: updatedJob.location,
-      roleFamily: updatedJob.roleFamily,
-      roleType: updatedJob.roleType,
-      fitScore: updatedJob.fitScore,
-    });
+    if (shouldCreateFeedback) {
+      const feedback = await readJson(FEEDBACK_FILE, []);
+      const safeFeedback = Array.isArray(feedback) ? feedback : [];
+      const feedbackAction = status === "archived" ? "deleted" : status;
 
-    await writeJson(FEEDBACK_FILE, safeFeedback.slice(0, 1000));
+      safeFeedback.push(
+        createFeedbackEntry(updatedJob, feedbackAction, {
+          rejectionReason:
+            status === "rejected" || status === "archived" ? reason : "",
+          reason,
+          fromGmailAgent: true,
+        }),
+      );
+
+      await writeJson(FEEDBACK_FILE, safeFeedback.slice(-1500));
+    }
 
     res.json({
       ok: true,
@@ -2439,9 +2553,17 @@ app.post("/api/gmail-agent/jobs/:id/status", async (req, res, next) => {
   }
 });
 
+app.use((error, req, res, next) => {
+  console.error(error);
+  res.status(500).json({ error: error.message || "שגיאת שרת" });
+});
+
 app.listen(port, () => {
   console.log(`שרת חיפוש המשרות פעיל: http://localhost:${port}`);
 });
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-import * as cheerio from "cheerio";
+﻿import * as cheerio from "cheerio";
 
 const ALLJOBS_BASE_URL = "https://www.alljobs.co.il";
 
@@ -662,87 +662,173 @@ async function fetchHtml(url) {
   return response.text();
 }
 
+const ALLJOBS_MAX_PAGES =
+  Number.parseInt(process.env.ALLJOBS_MAX_PAGES || "30", 10) || 30;
+
+const ALLJOBS_MAX_RESULTS =
+  Number.parseInt(process.env.ALLJOBS_MAX_RESULTS || "600", 10) || 600;
+
+const ALLJOBS_PAGE_DELAY_MS =
+  Number.parseInt(process.env.ALLJOBS_PAGE_DELAY_MS || "150", 10) || 150;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function setAllJobsPage(url, page) {
+  const parsed = new URL(url);
+  parsed.searchParams.set("page", String(page));
+  return parsed.toString();
+}
+
 export async function searchAllJobs({ query }) {
-  const urls = buildAllJobsSearchUrls(query);
+  const baseUrls = buildAllJobsSearchUrls(query);
   const allResults = [];
+  const globalSeen = new Set();
 
-  for (const url of urls) {
-    try {
-      console.log(`AllJobs searching: ${url}`);
+  for (const baseUrl of baseUrls) {
+    let emptyPagesInRow = 0;
+    let noNewUniquePagesInRow = 0;
 
-      const html = await fetchHtml(url);
-      const $ = cheerio.load(html);
+    for (let page = 1; page <= ALLJOBS_MAX_PAGES; page += 1) {
+      const url = setAllJobsPage(baseUrl, page);
 
-      const resultsFromPage = [];
-      const seenOnPage = new Set();
+      try {
+        console.log(`AllJobs searching page ${page}/${ALLJOBS_MAX_PAGES}: ${url}`);
 
-      $("a[href]").each((_, el) => {
-        const href = $(el).attr("href") || "";
-        const linkText = cleanText($(el).text());
+        const html = await fetchHtml(url);
+        const $ = cheerio.load(html);
 
-        if (!looksLikeJobLink(href) && !hasTargetRoleSignal(linkText)) return;
+        const resultsFromPage = [];
+        const seenOnPage = new Set();
 
-        const card = getBestCardForAnchor($, el);
-        const job = createJobFromCard($, card, url, query);
+        $("a[href]").each((_, el) => {
+          const href = $(el).attr("href") || "";
+          const linkText = cleanText($(el).text());
 
-        if (!job) return;
+          if (!looksLikeJobLink(href) && !hasTargetRoleSignal(linkText)) return;
 
-        const key = `${job.title}|${job.company}|${job.location}|${job.link}`;
+          const card = getBestCardForAnchor($, el);
+          const job = createJobFromCard($, card, url, query);
 
-        if (seenOnPage.has(key)) return;
-        seenOnPage.add(key);
+          if (!job) return;
 
-        resultsFromPage.push(job);
-      });
+          const key = `${job.title}|${job.company}|${job.location}|${job.link}`;
 
-      for (const card of collectCandidateCards($)) {
-        const job = createJobFromCard($, card, url, query);
+          if (seenOnPage.has(key)) return;
+          seenOnPage.add(key);
 
-        if (!job) continue;
+          resultsFromPage.push(job);
+        });
 
-        const key = `${job.title}|${job.company}|${job.location}|${job.link}`;
+        for (const card of collectCandidateCards($)) {
+          const job = createJobFromCard($, card, url, query);
 
-        if (seenOnPage.has(key)) continue;
-        seenOnPage.add(key);
+          if (!job) continue;
 
-        resultsFromPage.push(job);
-      }
+          const key = `${job.title}|${job.company}|${job.location}|${job.link}`;
 
-      // Fallback: AllJobs sometimes renders usable job text without clean anchors.
-      if (resultsFromPage.length === 0) {
-        const pageText = cleanText($("body").text());
+          if (seenOnPage.has(key)) continue;
+          seenOnPage.add(key);
 
-        const chunks = pageText
-          .split(/(?:לפני \d+ שעות|לפני \d+ ימים|לפני יום|לפני \d+ דקות)/)
-          .map((chunk) => chunk.trim())
-          .filter((chunk) => chunk.length > 100 && chunk.length < 2500)
-          .filter((chunk) => !isLikelyPageNoise(chunk))
-          .filter((chunk) => hasTargetRoleSignal(chunk));
+          resultsFromPage.push(job);
+        }
 
-        for (const chunk of chunks.slice(0, 20)) {
-          const title = extractTitle(chunk, "");
-          if (!title) continue;
+        if (resultsFromPage.length === 0) {
+          const pageText = cleanText($("body").text());
 
-          resultsFromPage.push({
-            title,
-            company: extractCompany(chunk, title),
-            location: extractLocation(chunk),
-            description: chunk,
-            link: url,
-            sourceQuery: query,
-          });
+          const chunks = pageText
+            .split(/(?:לפני \d+ שעות|לפני \d+ ימים|לפני יום|לפני \d+ דקות)/)
+            .map((chunk) => chunk.trim())
+            .filter((chunk) => chunk.length > 100 && chunk.length < 2500)
+            .filter((chunk) => !isLikelyPageNoise(chunk))
+            .filter((chunk) => hasTargetRoleSignal(chunk));
+
+          for (const chunk of chunks.slice(0, 20)) {
+            const title = extractTitle(chunk, "");
+            if (!title) continue;
+
+            resultsFromPage.push({
+              title,
+              company: extractCompany(chunk, title),
+              location: extractLocation(chunk),
+              description: chunk,
+              link: url,
+              sourceQuery: query,
+            });
+          }
+        }
+
+        const relevantResults = resultsFromPage.filter((item) =>
+          isProbablyRelevantToQuery(item, query),
+        );
+
+        let addedFromPage = 0;
+
+        for (const item of relevantResults) {
+          const key = getAllJobsStableKey(item);
+
+          if (!key || globalSeen.has(key)) continue;
+
+          globalSeen.add(key);
+          allResults.push(item);
+          addedFromPage += 1;
+
+          if (allResults.length >= ALLJOBS_MAX_RESULTS) {
+            console.log(
+              `AllJobs reached max results limit: ${ALLJOBS_MAX_RESULTS}`,
+            );
+            break;
+          }
+        }
+
+        console.log(
+          `AllJobs matched from page ${page}: ${relevantResults.length}, new unique: ${addedFromPage}, total so far: ${allResults.length}`,
+        );
+
+        if (relevantResults.length === 0) {
+          emptyPagesInRow += 1;
+        } else {
+          emptyPagesInRow = 0;
+        }
+
+        if (addedFromPage === 0) {
+          noNewUniquePagesInRow += 1;
+        } else {
+          noNewUniquePagesInRow = 0;
+        }
+
+        if (emptyPagesInRow >= 2) {
+          console.log("AllJobs stopping after 2 empty pages in a row");
+          break;
+        }
+
+        if (noNewUniquePagesInRow >= 5) {
+          console.log("AllJobs stopping after 5 pages with no new unique jobs");
+          break;
+        }
+
+        if (allResults.length >= ALLJOBS_MAX_RESULTS) {
+          break;
+        }
+
+        if (ALLJOBS_PAGE_DELAY_MS > 0) {
+          await sleep(ALLJOBS_PAGE_DELAY_MS);
+        }
+      } catch (error) {
+        console.warn(
+          `Skipped AllJobs URL for "${query}" page ${page}: ${error.message}`,
+        );
+        emptyPagesInRow += 1;
+
+        if (emptyPagesInRow >= 2) {
+          break;
         }
       }
+    }
 
-      const relevantResults = resultsFromPage.filter((item) =>
-        isProbablyRelevantToQuery(item, query),
-      );
-
-      allResults.push(...relevantResults);
-
-      console.log(`AllJobs matched from page: ${relevantResults.length}`);
-    } catch (error) {
-      console.warn(`Skipped AllJobs URL for "${query}": ${error.message}`);
+    if (allResults.length >= ALLJOBS_MAX_RESULTS) {
+      break;
     }
   }
 
@@ -765,5 +851,6 @@ export async function searchAllJobs({ query }) {
 
   console.log("AllJobs matched job links:", unique.length);
 
-  return unique.slice(0, 25);
+  return unique.slice(0, ALLJOBS_MAX_RESULTS);
 }
+

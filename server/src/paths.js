@@ -13,6 +13,7 @@ export const KEYWORDS_FILE = path.join(DATA_DIR, 'keywords.json');
 export const FEEDBACK_FILE = path.join(DATA_DIR, 'feedback.json');
 export const ROLE_PROFILES_FILE = path.join(DATA_DIR, 'roleProfiles.json');
 export const SCAN_AUDIT_FILE = path.join(DATA_DIR, 'scan-audit.json');
+export const SCAN_PROGRESS_FILE = path.join(DATA_DIR, 'scan-progress.json');
 
 export const SITE_SOURCES_FILE = path.join(DATA_DIR, 'siteSources.json');
 

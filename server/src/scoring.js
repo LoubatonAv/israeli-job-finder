@@ -6,7 +6,7 @@ const HARD_EXCLUDE_REGEX = [
   /(?:^|\s)שירות(?:\s+לקוחות)?(?:\s|$|–|-)/i,
   /נציג(?:\/ת|י|ים|ות|י\/ות)?/i,
   /מוקד|טלפוני|שיחות/i,
-  /מכירות|sales/i,
+  /(?:מכירות|איש\\s*מכירות|אשת\\s*מכירות|\\bsales\\b|sales\\s*(?:rep|representative|manager)|business\\s*development|account\\s*executive)/i,
   /משמרות|לילות|סופי\s*שבוע|שבת|חגים|כוננות|24\/7/i,
   /תיירות|חופשות|נופש|סוכני(?:\/ות)?\s*תיירות/i,
   /רווחים\s*גבוהים|הכנסה\s*גבוהה/i,
@@ -40,6 +40,10 @@ const BAD_LOCATION_KEYS = new Set([
   "raanana",
   "ramat_gan",
   "hod_hasharon",
+  "herzliya",
+  "rehovot",
+  "sharon",
+
 ]);
 
 function findRegexMatches(text, regexList = []) {
@@ -193,7 +197,7 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     warnings.push("המיקום לא זוהה בוודאות.");
   }
 
-  if (hasAdminOrNonSoftwareNoise(text)) {
+  if (job.roleFamily !== "qa" && hasAdminOrNonSoftwareNoise(text)) {
     score -= 28;
     warnings.push("נראה כמו אדמיניסטרציה / לוגיסטיקה / מעבדה ולא תפקיד תוכנה ברור.");
   }
@@ -234,6 +238,40 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
   let recommendation = "review";
   if (score >= 75) recommendation = "apply";
   if (score < 45) recommendation = "skip";
+
+  const isGoodApplyLocation =
+    GOOD_LOCATION_KEYS.has(job.locationKey) ||
+    job.locationKey === "remote";
+
+  if (
+    recommendation === "apply" &&
+    (!isGoodApplyLocation ||
+      BAD_LOCATION_KEYS.has(job.locationKey) ||
+      job.seniority === "senior_or_lead" ||
+      job.hasSeniorSignal ||
+      hasExperience(text, 3))
+  ) {
+    recommendation = "review";
+  }
+
+  const isQaCandidateForReview =
+    job.roleFamily === "qa" ||
+    /\bqa\b|בודק\s*[\/.]?\s*ת?\s*תוכנה|בודקי\s*תוכנה|בדיקות\s*תוכנה/i.test(text);
+
+  const isClearlyBadForQaReview =
+    BAD_LOCATION_KEYS.has(job.locationKey) ||
+    job.seniority === "senior_or_lead" ||
+    job.hasSeniorSignal ||
+    hasExperience(text, 3);
+
+  if (
+    recommendation === "skip" &&
+    isQaCandidateForReview &&
+    !isClearlyBadForQaReview &&
+    score >= 30
+  ) {
+    recommendation = "review";
+  }
 
   return {
     fitScore: score,

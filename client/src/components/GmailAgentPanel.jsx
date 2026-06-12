@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 
+
+const REJECTION_REASONS = [
+  { value: 'wrong_role', label: 'תפקיד לא מתאים' },
+  { value: 'location', label: 'מיקום לא מתאים' },
+  { value: 'senior', label: 'בכיר / ניהולי מדי' },
+  { value: 'experience', label: 'דורש יותר מדי ניסיון' },
+  { value: 'not_junior', label: 'לא מספיק ג׳וניור' },
+  { value: 'phone', label: 'טלפוני / מוקד' },
+  { value: 'customer_service', label: 'שירות לקוחות / תמיכה' },
+  { value: 'sales', label: 'מכירות / ביזנס' },
+  { value: 'shifts', label: 'משמרות / לילות / שבתות' },
+  { value: 'onsite', label: 'נוכחות במשרד לא מתאימה' },
+  { value: 'tech_stack', label: 'טכנולוגיות לא מתאימות' },
+  { value: 'already_applied', label: 'כבר שלחתי / כפילות' },
+  { value: 'other', label: 'אחר' },
+];
+
 const FILTERS = [
   { id: "all", label: "הכול מ-Gmail" },
   { id: "apply", label: "לטיפול מ-Gmail" },
@@ -428,6 +445,7 @@ function StatCard({ label, value, tone = "slate" }) {
 }
 
 function GmailJobCard({ job, busy, onStatus }) {
+  const [rejectReason, setRejectReason] = useState('wrong_role');
   const warnings = Array.isArray(job.warnings)
     ? job.warnings.filter(Boolean)
     : [];
@@ -557,15 +575,26 @@ function GmailJobCard({ job, busy, onStatus }) {
             ארכיון
           </button>
 
+          <select
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            disabled={busy}
+            className="rounded-2xl border border-rose-200 bg-white px-3 py-3 text-sm font-bold text-rose-800 outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-50 disabled:opacity-50"
+          >
+            {REJECTION_REASONS.map((reason) => (
+              <option key={reason.value} value={reason.value}>
+                {reason.label}
+              </option>
+            ))}
+          </select>
+
           <button
             type="button"
             disabled={busy}
-            onClick={() =>
-              onStatus(job, "rejected", "לא מתאים מתוך Gmail Agent")
-            }
+            onClick={() => onStatus(job, "rejected", rejectReason)}
             className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800 transition hover:bg-rose-100 disabled:opacity-50"
           >
-            לא מתאים
+            לא מתאים — למד מזה
           </button>
         </div>
       </div>

@@ -16,7 +16,7 @@ function cleanGoogleUrl(href = "") {
 
 export async function searchWithPlaywright({ query }) {
   const browser = await chromium.launch({
-    headless: false,
+    headless: String(process.env.PLAYWRIGHT_HEADLESS || "true").toLowerCase() !== "false",
   });
 
   const page = await browser.newPage({
@@ -31,10 +31,10 @@ export async function searchWithPlaywright({ query }) {
 
   await page.goto(url, {
     waitUntil: "domcontentloaded",
-    timeout: 30000,
+    timeout: Number.parseInt(process.env.PLAYWRIGHT_TIMEOUT_MS || "15000", 10),
   });
 
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(Number.parseInt(process.env.PLAYWRIGHT_WAIT_MS || "800", 10));
 
   const results = await page.evaluate(() => {
     return [...document.querySelectorAll("a")]

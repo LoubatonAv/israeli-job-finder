@@ -8,6 +8,8 @@ export function extractRole(job = {}) {
     .join(" ")
     .toLowerCase();
 
+  const titleText = String(job.title || "").toLowerCase();
+
   const result = {
     roleFamily: "unknown",
     roleType: "unknown",
@@ -72,24 +74,32 @@ export function extractRole(job = {}) {
     result.roleSignals.push("junior");
   }
 
-  if (
-    hasAny(text, [
-      /senior/i,
-      /ראש\s*צוות/i,
-      /ר["״]?צ/i,
-      /team\s*lead/i,
-      /manager/i,
-      /ניהול/i,
-      /מנהל/i,
-      /בכיר/i,
-      /מנוסה/i,
-      /3\+?\s*שנים/i,
-      /4\+?\s*שנים/i,
-      /5\+?\s*שנים/i,
-      /מעל\s*3\s*שנים/i,
-      /מעל\s*4\s*שנים/i,
-    ])
-  ) {
+  const seniorTitleSignal = hasAny(titleText, [
+    /senior/i,
+    /ראש\s*צוות/i,
+    /ר["״]?צ/i,
+    /team\s*lead/i,
+    /tech\s*lead/i,
+    /lead\s+qa/i,
+    /qa\s+lead/i,
+    /manager/i,
+    /מנהל/i,
+    /מנהלת/i,
+    /בכיר/i,
+    /מנוסה/i,
+  ]);
+
+  const seniorExperienceSignal = hasAny(text, [
+    /3\+?\s*שנים/i,
+    /4\+?\s*שנים/i,
+    /5\+?\s*שנים/i,
+    /מעל\s*3\s*שנים/i,
+    /מעל\s*4\s*שנים/i,
+    /לפחות\s*3\s*שנים/i,
+    /לפחות\s*4\s*שנים/i,
+  ]);
+
+  if (seniorTitleSignal || seniorExperienceSignal) {
     result.seniority = "senior_or_lead";
     result.roleSignals.push("senior_or_management");
   }
@@ -102,6 +112,11 @@ export function extractRole(job = {}) {
     /manual\s*tester/i,
     /sw\s*qa/i,
     /qa\s*tester/i,
+    /בודק\s*[\/.]\s*ת\s*תוכנה/i,
+    /בודק\s*\/\s*ת\s*תוכנה/i,
+    /בודק\.ת\s*תוכנה/i,
+    /בודקי\s*תוכנה/i,
+    /בודקות\s*תוכנה/i,
     /בודק(?:\/ת)?\s*תוכנה/i,
     /בודקת\s*תוכנה/i,
     /בודק\s*תוכנה/i,

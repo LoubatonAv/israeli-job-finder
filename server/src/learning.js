@@ -36,16 +36,39 @@ export const REJECTION_REASONS = {
     ],
   },
   phone: {
-    label: 'יותר מדי טלפוני / שירות לקוחות',
+    label: 'טלפוני מדי / מוקד',
     penalty: -18,
     patterns: [
       /טלפוני/i,
       /מוקד/i,
       /שיחות/i,
-      /שירות\s*לקוחות/i,
       /נציג/i,
       /call\s*center/i,
+    ],
+  },
+  customer_service: {
+    label: 'שירות לקוחות / תמיכה מדי',
+    penalty: -18,
+    patterns: [
+      /שירות\s*לקוחות/i,
+      /תמיכה/i,
+      /support/i,
+      /help\s*desk/i,
       /customer\s*service/i,
+      /technical\s*support/i,
+      /טכנאי/i,
+    ],
+  },
+  sales: {
+    label: 'מכירות / ביזנס מדי',
+    penalty: -18,
+    patterns: [
+      /מכירות/i,
+      /איש\/?ת\s*מכירות/i,
+      /sales/i,
+      /account\s*executive/i,
+      /business\s*development/i,
+      /bd\b/i,
     ],
   },
   senior: {
@@ -65,9 +88,50 @@ export const REJECTION_REASONS = {
       /[3-9]\s*שנים/i,
     ],
   },
+  experience: {
+    label: 'דורש יותר מדי ניסיון',
+    penalty: -18,
+    patterns: [
+      /ניסיון\s*של\s*[3-9]/i,
+      /[3-9]\s*שנות\s*ניסיון/i,
+      /[3-9]\+\s*שנים/i,
+      /[3-9]\+?\s*(years|yrs)/i,
+      /לפחות\s*[3-9]\s*שנים/i,
+    ],
+  },
   wrong_role: {
     label: 'סוג תפקיד לא מתאים',
     penalty: -16,
+  },
+  not_junior: {
+    label: 'לא מספיק ג׳וניור / לא כניסה',
+    penalty: -16,
+    patterns: [
+      /senior/i,
+      /middle/i,
+      /מנוסה/i,
+      /לא\s*ג[׳']?וניור/i,
+      /ניסיון\s*חובה/i,
+    ],
+  },
+  tech_stack: {
+    label: 'טכנולוגיות לא מתאימות',
+    penalty: -12,
+  },
+  onsite: {
+    label: 'נוכחות במשרד / היברידי לא מתאים',
+    penalty: -12,
+    patterns: [
+      /משרה\s*מלאה\s*מהמשרד/i,
+      /עבודה\s*מהמשרד/i,
+      /onsite/i,
+      /on-site/i,
+      /5\s*ימים\s*מהמשרד/i,
+    ],
+  },
+  already_applied: {
+    label: 'כבר שלחתי / כפילות',
+    penalty: -8,
   },
   other: {
     label: 'סיבה אחרת',

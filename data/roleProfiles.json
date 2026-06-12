@@ -78,10 +78,7 @@
       "data analyst",
       "דאטה אנליסט",
       "אנליסט נתונים",
-      "sql",
-      "excel",
-      "power bi",
-      "bi"
+      "power bi"
     ],
     "negativePatterns": [
       "senior",
@@ -109,9 +106,7 @@
       "noc",
       "ניטור",
       "monitoring",
-      "מערכות",
-      "support tier",
-      "תקלות"
+      "support tier"
     ],
     "negativePatterns": [
       "משמרות לילה",
@@ -192,12 +187,7 @@
       "מפתח פרונט",
       "מפתח frontend",
       "מפתח react",
-      "מפתח vue",
-      "ג׳וניור",
-      "ג'וניור",
-      "junior",
-      "ללא ניסיון",
-      "ללא נסיון"
+      "מפתח vue"
     ],
     "negativePatterns": [
       "senior",

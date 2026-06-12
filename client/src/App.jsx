@@ -183,6 +183,7 @@ export default function App() {
   const [feedback, setFeedback] = useState([]);
   const [scanSummary, setScanSummary] = useState(null);
   const [agentSummary, setAgentSummary] = useState(null);
+  const [scanProgress, setScanProgress] = useState(null);
   const [activeTab, setActiveTab] = useState("agent");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -196,13 +197,14 @@ export default function App() {
   const [sortBy, setSortBy] = useState("score-desc");
 
   async function loadAll() {
-    const [jobsData, reviewData, feedbackData, scanData, agentData] =
+    const [jobsData, reviewData, feedbackData, scanData, agentData, progressData] =
       await Promise.all([
         apiGet("/api/jobs"),
         apiGet("/api/jobs/review").catch(() => []),
         apiGet("/api/feedback").catch(() => []),
         apiGet("/api/scan-summary").catch(() => null),
         apiGet("/api/gmail/agent-summary").catch(() => null),
+        apiGet("/api/jobs/scan-progress").catch(() => null),
       ]);
 
     setJobs(Array.isArray(jobsData) ? jobsData : []);
@@ -210,27 +212,53 @@ export default function App() {
     setFeedback(Array.isArray(feedbackData) ? feedbackData : []);
     setScanSummary(scanData);
     setAgentSummary(agentData);
+    setScanProgress(progressData);
   }
 
   useEffect(() => {
     loadAll().catch((err) => setError(err.message));
   }, []);
 
-  async function runFinder() {
+  useEffect(() => {
+    if (!loading) return undefined;
+
+    const timer = window.setInterval(() => {
+      apiGet("/api/jobs/scan-progress")
+        .then(setScanProgress)
+        .catch(() => {});
+    }, 2500);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
+
+  async function runFinder({ resume = false } = {}) {
     setLoading(true);
     setError("");
     setMessage("הסריקה התחילה. המערכת מחפשת ומעדכנת את הרשימה.");
 
     try {
-      const result = await apiPost("/api/jobs/find");
+      const result = await apiPost("/api/jobs/find", { resume });
+      setScanProgress(result.progress || null);
       await loadAll();
       setMessage(
-        `הסריקה הסתיימה: נסרקו ${result.scanned || 0}, נוספו ${result.newJobs || 0}, נשמרו ${result.totalJobs || 0}.`,
+        result.stopped
+          ? `הסריקה נעצרה ונשמרה: נסרקו במקטע הזה ${result.scanned || 0}, נוספו ${result.newJobs || 0}, נשמרו ${result.totalJobs || 0}. אפשר להמשיך מאותה נקודה.`
+          : `הסריקה הסתיימה: נסרקו ${result.scanned || 0}, נוספו ${result.newJobs || 0}, נשמרו ${result.totalJobs || 0}.`,
       );
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function stopScan() {
+    try {
+      const progress = await apiPost("/api/jobs/scan-stop");
+      setScanProgress(progress);
+      setMessage("ביקשתי לעצור את הסריקה. היא תיעצר אחרי המקור הנוכחי ותשמור את מה שכבר נסרק.");
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -394,6 +422,17 @@ export default function App() {
     };
   }, [jobs, reviewJobs, feedback, agentSummary]);
 
+  const scanStepsDone = Number(scanProgress?.completedSteps ?? scanProgress?.nextStepIndex ?? 0);
+  const scanStepsTotal = Number(scanProgress?.totalSteps ?? 0);
+  const scanPercent = scanStepsTotal
+    ? Math.round((scanStepsDone / scanStepsTotal) * 100)
+    : 0;
+  const canResumeScan =
+    Boolean(scanProgress?.stopped) &&
+    !scanProgress?.completed &&
+    scanStepsTotal > 0 &&
+    scanStepsDone < scanStepsTotal;
+
   const currentTabCount = (tab) => {
     if (tab === "agent") return agentSummary?.activeGmailJobs ?? "";
     if (tab === "gmail" || tab === "roles") return "";
@@ -428,7 +467,7 @@ export default function App() {
             <div className="flex flex-wrap gap-2 lg:justify-end">
               <button
                 type="button"
-                onClick={runFinder}
+                onClick={() => runFinder({ resume: false })}
                 disabled={loading}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-60"
               >
@@ -438,6 +477,27 @@ export default function App() {
                 />{" "}
                 סריקת אתרים
               </button>
+
+              {canResumeScan ? (
+                <button
+                  type="button"
+                  onClick={() => runFinder({ resume: true })}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:opacity-60"
+                >
+                  המשך סריקה
+                </button>
+              ) : null}
+
+              {loading ? (
+                <button
+                  type="button"
+                  onClick={stopScan}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-700 shadow-sm transition hover:bg-red-100"
+                >
+                  עצור אחרי המקטע הנוכחי
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setActiveTab("agent")}
@@ -454,6 +514,30 @@ export default function App() {
             className={`mt-4 rounded-3xl border px-5 py-4 text-sm font-black shadow-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
           >
             {error || message}
+          </div>
+        ) : null}
+
+        {scanProgress?.running || canResumeScan ? (
+          <div className="mt-4 rounded-3xl border border-indigo-100 bg-white/90 p-4 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm font-black text-slate-800">
+                מצב סריקה: {scanProgress?.message || "יש התקדמות שמורה"}
+              </div>
+              <div className="text-xs font-bold text-slate-500">
+                {scanStepsDone}/{scanStepsTotal} · {scanPercent}%
+              </div>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-indigo-600 transition-all"
+                style={{ width: `${Math.max(0, Math.min(100, scanPercent))}%` }}
+              />
+            </div>
+            {scanProgress?.currentProvider || scanProgress?.currentQuery ? (
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                עכשיו: {scanProgress.currentProvider || "מקור"} · {scanProgress.currentQuery || "שאילתה"}
+              </p>
+            ) : null}
           </div>
         ) : null}
 

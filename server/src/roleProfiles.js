@@ -78,6 +78,12 @@ export function applyRoleProfiles(job = {}) {
       job.roleConfidence === 'high';
 
     if (existingRoleLooksGood && profile.overrideExisting !== true) {
+      const profileRoleFamily = profile.roleFamily || "custom";
+
+      if (profileRoleFamily !== job.roleFamily) {
+        continue;
+      }
+
       return {
         ...job,
         roleProfileId: profile.id,
