@@ -375,7 +375,12 @@ function collectRoleTerms(roleProfiles = [], keywordQueries = []) {
 
   roleTerms.push(...keywordQueries);
 
-  return uniqueUsefulTerms([...DEFAULT_TARGET_TERMS, ...roleTerms]);
+  const GMAIL_EXCLUDED_TARGET_TERM_PATTERN =
+    /^(developer|software developer|full stack|fullstack|frontend|front end|backend|back end|react developer|node developer|node\\.js developer|\\.net developer)$/i;
+
+  return uniqueUsefulTerms([...DEFAULT_TARGET_TERMS, ...roleTerms]).filter(
+    (term) => !GMAIL_EXCLUDED_TARGET_TERM_PATTERN.test(String(term || "").trim()),
+  );
 }
 
 function normalizeGmailLabelName(value = "") {

@@ -230,8 +230,71 @@ function isManufacturingQualityQa(job = {}) {
   return hasManufacturingQualitySignal(text) && !hasSoftwareQaSignalText(text);
 }
 
+
+function getHardJobText(job = {}) {
+  return [
+    job.title,
+    job.company,
+    job.location,
+    job.locationKey,
+    job.description,
+    job.source,
+    job.via,
+    job.url,
+    job.jobType,
+    ...(Array.isArray(job.reasons) ? job.reasons : []),
+    ...(Array.isArray(job.warnings) ? job.warnings : []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getHardJobRejectionReason(job = {}) {
+  const title = String(job.title || "");
+  const source = String(job.source || "");
+  const url = String(job.url || "");
+  const text = getHardJobText(job);
+
+  const isAllJobs = /alljobs/i.test([source, url, text].join(" "));
+
+  if (
+    isAllJobs &&
+    /premium|פרימיום|למנויים בלבד|מנויים בלבד|מנוי בלבד|למנויי|דרוש חשבון|חשבון בתשלום|חשבון פרימיום/i.test(text)
+  ) {
+    return "נפסל אוטומטית: משרת AllJobs Premium / מנויים בלבד.";
+  }
+
+  const qaAutomationTitle =
+    /(?:qa|בדיקות|בודק|בודקת|tester|testing).*(?:automation|אוטומציה)|(?:automation|אוטומציה).*(?:qa|בדיקות|בודק|בודקת|tester|testing)/i.test(title);
+
+  const hardDeveloperTitle =
+    /full\s*stack|software\s+developer|software\s+engineer|frontend|front\s*end|backend|back\s*end|\.net\s+developer|java\s+developer|react\s+developer|node(?:\.js)?\s+developer|מפתח(?:\/ת)?\s*(?:תוכנה|full\s*stack|frontend|backend|front|react|\.net|מערכות מידע)|מתכנת/i.test(title);
+
+  if (hardDeveloperTitle && !qaAutomationTitle) {
+    return "נפסל אוטומטית: תפקיד פיתוח תוכנה ולא QA/בדיקות.";
+  }
+
+  return "";
+}
+
 export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
-  const text = [job.title, job.company, job.location, job.description, job.via]
+  
+  const hardRejectionReason = getHardJobRejectionReason(job);
+  if (hardRejectionReason) {
+    return {
+      ...job,
+      fitScore: 0,
+      recommendation: "skip",
+      status: "skipped",
+      isRelevantRole: false,
+      roleFamily: "irrelevant",
+      roleType: "irrelevant",
+      reasons: [],
+      warnings: [...new Set([...(Array.isArray(job.warnings) ? job.warnings : []), hardRejectionReason])],
+    };
+  }
+
+const text = [job.title, job.company, job.location, job.description, job.via]
     .filter(Boolean)
     .join(" ");
 
