@@ -231,13 +231,15 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [loading]);
 
-  async function runFinder({ resume = false } = {}) {
+  async function runFinder({ resume = false, mode = "quick" } = {}) {
     setLoading(true);
     setError("");
-    setMessage("הסריקה התחילה. המערכת מחפשת ומעדכנת את הרשימה.");
+    const scanLabel =
+      mode === "deep" ? "סריקה עמוקה" : mode === "quick" ? "סריקה מהירה" : "סריקה";
+    setMessage(`${scanLabel} התחילה. המערכת מחפשת ומעדכנת את הרשימה.`);
 
     try {
-      const result = await apiPost("/api/jobs/find", { resume });
+      const result = await apiPost("/api/jobs/find", { resume, mode });
       setScanProgress(result.progress || null);
       await loadAll();
       setMessage(
@@ -467,7 +469,7 @@ export default function App() {
             <div className="flex flex-wrap gap-2 lg:justify-end">
               <button
                 type="button"
-                onClick={() => runFinder({ resume: false })}
+                onClick={() => runFinder({ resume: false, mode: "quick" })}
                 disabled={loading}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:opacity-60"
               >
@@ -475,7 +477,19 @@ export default function App() {
                   size={18}
                   className={loading ? "animate-spin" : ""}
                 />{" "}
-                סריקת אתרים
+                סריקה מהירה
+              </button>
+              <button
+                type="button"
+                onClick={() => runFinder({ resume: false, mode: "deep" })}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-black text-indigo-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-100 disabled:opacity-60"
+              >
+                <RefreshCw
+                  size={18}
+                  className={loading ? "animate-spin" : ""}
+                />{" "}
+                סריקה עמוקה
               </button>
 
               {canResumeScan ? (
@@ -785,7 +799,7 @@ export default function App() {
             ) : (
               <EmptyState
                 activeTab={activeTab}
-                onScan={runFinder}
+                onScan={() => runFinder({ mode: "quick" })}
                 loading={loading}
               />
             )}

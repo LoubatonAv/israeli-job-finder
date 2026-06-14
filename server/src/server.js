@@ -1846,16 +1846,98 @@ app.get("/api/jobs/review", async (req, res, next) => {
   }
 });
 
+
+const JOB_SCAN_MODE_ENV_KEYS = [
+  "SEARCH_PROVIDERS",
+  "SEARCH_PROVIDER",
+  "SCAN_MAX_QUERIES",
+  "SCAN_BATCH_SIZE",
+  "ALLJOBS_MAX_PAGES",
+  "ALLJOBS_MAX_RESULTS",
+  "ALLJOBS_FETCH_DETAILS",
+  "ALLJOBS_DETAIL_LIMIT",
+  "ALLJOBS_DETAIL_DELAY_MS",
+  "DRUSHIM_MAX_RESULTS",
+  "JOBMASTER_MAX_RESULTS",
+];
+
+function normalizeJobScanMode(mode) {
+  const value = String(mode || "quick").trim().toLowerCase();
+  if (value === "deep") return "deep";
+  if (value === "quick") return "quick";
+  return "quick";
+}
+
+function applyJobScanMode(mode) {
+  const normalizedMode = normalizeJobScanMode(mode);
+
+  const previous = Object.fromEntries(
+    JOB_SCAN_MODE_ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
+
+  const apply = (values) => {
+    for (const [key, value] of Object.entries(values)) {
+      process.env[key] = String(value);
+    }
+  };
+
+  if (normalizedMode === "deep") {
+    apply({
+      SEARCH_PROVIDERS: "alljobs,drushim,jobmaster",
+      SEARCH_PROVIDER: "alljobs,drushim,jobmaster",
+      SCAN_MAX_QUERIES: "8",
+      SCAN_BATCH_SIZE: "6",
+      ALLJOBS_MAX_PAGES: "8",
+      ALLJOBS_MAX_RESULTS: "180",
+      ALLJOBS_FETCH_DETAILS: "true",
+      ALLJOBS_DETAIL_LIMIT: "80",
+      ALLJOBS_DETAIL_DELAY_MS: "100",
+      DRUSHIM_MAX_RESULTS: "60",
+      JOBMASTER_MAX_RESULTS: "60",
+    });
+  } else {
+    apply({
+      SEARCH_PROVIDERS: "alljobs,drushim",
+      SEARCH_PROVIDER: "alljobs,drushim",
+      SCAN_MAX_QUERIES: "2",
+      SCAN_BATCH_SIZE: "4",
+      ALLJOBS_MAX_PAGES: "3",
+      ALLJOBS_MAX_RESULTS: "60",
+      ALLJOBS_FETCH_DETAILS: "true",
+      ALLJOBS_DETAIL_LIMIT: "20",
+      ALLJOBS_DETAIL_DELAY_MS: "100",
+      DRUSHIM_MAX_RESULTS: "30",
+    });
+  }
+
+  return {
+    mode: normalizedMode,
+    restore() {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    },
+  };
+}
+
 app.post("/api/jobs/find", async (req, res, next) => {
+  const scanMode = applyJobScanMode(req.body?.mode);
+
   try {
     const result = await findJobs({
       useMock: false,
       resume: Boolean(req.body?.resume),
-      batchSize: Number(req.body?.batchSize || 0),
+      batchSize: Number(req.body?.batchSize || process.env.SCAN_BATCH_SIZE || 0),
     });
-    res.json(result);
+    res.json({ ...result, mode: scanMode.mode });
   } catch (error) {
     next(error);
+  } finally {
+    scanMode.restore();
   }
 });
 
