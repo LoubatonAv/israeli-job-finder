@@ -7,7 +7,9 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "find-jobs": "node src/cliFindJobs.js",
-    "mock-jobs": "node src/loadMockJobs.js"
+    "mock-jobs": "node src/loadMockJobs.js",
+    "scan:quick": "node src/cliQuickScan.js",
+    "scan:deep": "node src/cliDeepScan.js"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
