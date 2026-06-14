@@ -1,399 +1,82 @@
 {
-  "createdAt": "2026-06-12T00:30:54.873Z",
+  "createdAt": "2026-06-14T12:22:37.428Z",
   "totals": {
-    "incoming": 55,
-    "scored": 55,
-    "kept": 0,
-    "filtered": 55
+    "incoming": 35,
+    "scored": 35,
+    "kept": 6,
+    "filtered": 29
   },
   "jobs": [
     {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה QA לחיפה",
-      "company": "חברה חסויה",
-      "location": "חיפה",
-      "locationKey": "haifa",
-      "source": "AllJobs",
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "לחברה ביטחונית בצפון, בודק /ת תוכנה",
+      "company": "ALLSTARSIT",
+      "location": "צפון",
+      "locationKey": "north",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8609544",
+      "url": "https://www.drushim.co.il/job/37158645/7d5d33e3/",
       "roleFamily": "qa",
-      "roleType": "qa_manual",
+      "roleType": "qa_general",
       "seniority": "unknown",
       "isRelevantRole": true,
-      "fitScore": 71,
-      "recommendation": "review",
+      "fitScore": 100,
+      "recommendation": "apply",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
         "מתאים לג׳וניור / ללא ניסיון.",
-        "מיקום מתאים: חיפה.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+12)."
+        "מיקום מתאים: צפון."
       ],
-      "warnings": [
-        "נראה בכיר/ניהולי מדי.",
-        "מילות אזהרה: פקיד.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "חברה מגייסת בודק.ת תוכנה ידני לארגון מוביל במרכז הארץ",
-      "company": "חברה חסויה",
-      "location": "מרכז",
-      "locationKey": "center",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8680513",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 46,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: מרכז.",
-        "מילות אזהרה: מרכז.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-10)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "דרוש /ה בודק /ת תוכנה QA ידני /אוטומציה למחלקת דיגיטל בחברה מובילה בתחומה באזור המרכז",
-      "company": "חברה חסויה",
-      "location": "מרכז",
-      "locationKey": "center",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8664497",
-      "roleFamily": "qa",
-      "roleType": "qa_automation",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 74,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: מרכז.",
-        "מילות אזהרה: מרכז.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "לחברה ביטחונית, בודק /ת תוכנה QA 3 שנות ניסיון ויותר ידע ב ידני עם ידע באוטמציה תקנים בכל הארץ",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8680666",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — דורש יותר מדי ניסיון.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
+      "warnings": []
     },
     {
       "decision": "filtered_low_score",
       "kept": false,
-      "title": "מהנדס /ת QA ידני - ג'וניור",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
+      "title": "לחברת מדיקל מובילה בחיפה, מהנדס/ת בדיקות תוכנה",
+      "company": "ALLSTARSIT",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8684980",
+      "url": "https://www.drushim.co.il/job/37347505/fa587e93/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 20,
+      "recommendation": "review",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: חיפה."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מילות אזהרה: מנוסה, מהנדס, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: יש סימן לניסיון/בכירות גבוהים מדי."
+      ]
+    },
+    {
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "22186 - Junior Manual System Tester",
+      "company": "Qualitest",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37201357/663c2b1e/",
       "roleFamily": "qa",
       "roleType": "qa_manual",
       "seniority": "junior",
       "isRelevantRole": true,
-      "fitScore": 36,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מהנדס.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "דרוש /ה בודק /ת QA שילוב ידני + אוטומציה לארגון באיזור השפלה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8684339",
-      "roleFamily": "qa",
-      "roleType": "qa_automation",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 83,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+11)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק.ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8650175",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "בודק/ת תוכנה QA ידני/ת",
-      "company": "חברה חסויה",
-      "location": "רמת גן",
-      "locationKey": "ramat_gan",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8651690",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 24,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: רמת גן.",
-        "מילות אזהרה: רמת גן.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה QA",
-      "company": "חברה חסויה",
-      "location": "אור יהודהסוג משרה:",
-      "locationKey": "אור_יהודהסוג_משרה:",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8650214",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 98,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "בודק/ת תוכנה מנוסה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8655202",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "senior_or_lead",
-      "isRelevantRole": true,
-      "fitScore": 0,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "נראה בכיר/ניהולי מדי.",
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מנוסה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה ידני",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8674887",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת QA ידני",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8671508",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "QA Manual",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8646391",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "לחברת מדיקל מובילה בחיפה, מהנדס /ת בדיקות תוכנה",
-      "company": "חברה חסויה",
-      "location": "חיפה",
-      "locationKey": "haifa",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8690994",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "senior_or_lead",
-      "isRelevantRole": true,
-      "fitScore": 0,
-      "recommendation": "skip",
+      "fitScore": 100,
+      "recommendation": "apply",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
@@ -401,170 +84,161 @@
         "מתאים לג׳וניור / ללא ניסיון.",
         "מיקום מתאים: חיפה."
       ],
+      "warnings": []
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק.ת תהליכים מבצעיים",
+      "company": "Mertens – Malam Team",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37156669/3051a36f/",
+      "roleFamily": "unknown",
+      "roleType": "unknown",
+      "seniority": "unknown",
+      "isRelevantRole": false,
+      "fitScore": 35,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: חיפה.",
+        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
+      ],
       "warnings": [
-        "נראה בכיר/ניהולי מדי.",
-        "ייתכן שדורש 3 שנות ניסיון ומעלה.",
-        "מילות אזהרה: מנוסה, מהנדס, 3 שנים.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "לא זוהה תפקיד יעד ברור.",
         "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — דורש יותר מדי ניסיון.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נפסל: לא זוהה תפקיד יעד מתאים."
       ]
     },
     {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "V&V Engineer",
+      "company": "Ready Group",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8646572",
+      "url": "https://www.drushim.co.il/job/37064272/c41a67ce/",
       "roleFamily": "qa",
       "roleType": "qa_general",
       "seniority": "unknown",
       "isRelevantRole": true,
-      "fitScore": 87,
+      "fitScore": 100,
+      "recommendation": "apply",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: חיפה."
+      ],
+      "warnings": []
+    },
+    {
+      "decision": "filtered_other",
+      "kept": false,
+      "title": "למטריקס (צפון) דרוש/ה מהנדס/ת בדיקות אינטגרציה",
+      "company": "צפון matrix",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37354516/18219ac7/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 71,
       "recommendation": "review",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
         "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+21)."
+        "מיקום מתאים: חיפה."
       ],
       "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נראה בכיר/ניהולי מדי.",
+        "מילות אזהרה: מהנדס.",
+        "נשאר לבדיקה: יש סימן לניסיון/בכירות גבוהים מדי."
       ]
     },
     {
-      "decision": "filtered_other",
+      "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "דרוש בודק /ת תוכנה אוטומציה לחברה בטחונית גדולה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
+      "title": "Test Lab Shift Supervisor",
+      "company": "Ness",
+      "location": "חיפה",
+      "locationKey": "haifa",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8598240",
+      "url": "https://www.drushim.co.il/job/37199704/dde4ab6b/",
+      "roleFamily": "unknown",
+      "roleType": "unknown",
+      "seniority": "junior",
+      "isRelevantRole": false,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: חיפה.",
+        "כישורים שלך שמופיעים במשרה: Debugging.",
+        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+16)."
+      ],
+      "warnings": [
+        "לא זוהה תפקיד יעד ברור.",
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מילות אזהרה: shift.",
+        "למידה: בעבר פסלת תפקיד דומה.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — משמרות / לילות / סופי שבוע.",
+        "נפסל: לא זוהה תפקיד יעד מתאים."
+      ]
+    },
+    {
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "לחברה ביטחונית בצפון, מפתח /ת אוטומציה",
+      "company": "ALLSTARSIT",
+      "location": "צפון",
+      "locationKey": "north",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37158683/656e489e/",
       "roleFamily": "qa",
       "roleType": "qa_automation",
       "seniority": "unknown",
       "isRelevantRole": true,
-      "fitScore": 76,
+      "fitScore": 100,
       "recommendation": "review",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
         "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
         "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+4)."
+        "מיקום מתאים: צפון."
       ],
       "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה ידני /ת - יוצא /ת יחידה טכנולוגית בצבא",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8669631",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה - ירושלים",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8638996",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 56,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+10)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "דרוש /ה בודק /ת תוכנה למשרד ממשלתי בירושלים.",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8666795",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 66,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+20)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים)."
+        "מילות אזהרה: מפתח.",
+        "נשאר לבדיקה: התפקיד נראה קרוב, אבל חסר סימן ברור שזה QA תוכנה / תפקיד יעד מדויק."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "דרוש /ה בודק /ת תוכנה בכיר /ה לגוף בטחוני גדול בירושלים",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
+      "title": "בודקים/ות ואינטגרציה למערכות מורכבות",
+      "company": "CALANIT by one",
+      "location": "Israel",
+      "locationKey": null,
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8673346",
+      "url": "https://www.drushim.co.il/job/37267553/00dedf0b/",
       "roleFamily": "qa",
-      "roleType": "qa_general",
+      "roleType": "qa_automation",
       "seniority": "senior_or_lead",
       "isRelevantRole": true,
       "fitScore": 0,
@@ -572,432 +246,200 @@
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
+        "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
         "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "נראה בכיר/ניהולי מדי.",
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים, בכיר.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "דרוש /ה בודק /ת תוכנה למשרד ממשלתי גדול בירושלים",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8658040",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 67,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+21)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "ל YIT דרוש /ה בודק /ת QA עם ניסיון בבדיקות WEB",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8668667",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה ידני",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8648163",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה (QA)",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8636218",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה דיגיטל",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8634240",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "מהנדס/ת בדיקות QA",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8647106",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 79,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+21)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מהנדס.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "QA Manual מנוסה",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8662401",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "senior_or_lead",
-      "isRelevantRole": true,
-      "fitScore": 0,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "נראה בכיר/ניהולי מדי.",
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים, מנוסה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה QA לארגון ציבורי באזור ירושלים",
-      "company": "חברה חסויה",
-      "location": "ירושלים",
-      "locationKey": "jerusalem",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8682566",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת מיקום דומה (ירושלים)."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "בודק /ת תוכנה ידני ( MANUAL QA ) JB-1602",
-      "company": "חברה חסויה",
-      "location": "Remote",
-      "locationKey": "remote",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8690949",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "senior_or_lead",
-      "isRelevantRole": true,
-      "fitScore": 0,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "מיקום מתאים: Remote.",
-        "מילות יעד שנמצאו: Manual QA."
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
         "נראה שדורש 4 שנות ניסיון ומעלה.",
-        "מילות אזהרה: פיתוח, ארכיטקט, 5 שנים, בני ברק.",
+        "המיקום לא זוהה בוודאות.",
+        "מילות אזהרה: 4 שנים.",
         "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — דורש יותר מדי ניסיון.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נשאר לבדיקה: התפקיד נראה קרוב, אבל חסר סימן ברור שזה QA תוכנה / תפקיד יעד מדויק."
       ]
     },
     {
-      "decision": "filtered_other",
+      "decision": "filtered_low_score",
       "kept": false,
-      "title": "דרוש /ה בודק /ת תוכנה ידני /ת (משרה זמנית)",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
+      "title": "R&D SW Test Engineer למטריקס (יקנעם)",
+      "company": "צפון matrix",
+      "location": "יקנעם",
+      "locationKey": "yokneam",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8678705",
+      "url": "https://www.drushim.co.il/job/37343040/24a0400d/",
       "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
       "isRelevantRole": true,
-      "fitScore": 44,
+      "fitScore": 28,
       "recommendation": "review",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "מהנדס /ת בדיקות ידניות ואינטגרציה - ארגון מוביל באזור השפלה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8639264",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "senior_or_lead",
-      "isRelevantRole": true,
-      "fitScore": 1,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: יקנעם."
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מהנדס.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "לחברת ביטוח מובילה בתחומה בתל אביב דרוש /ה בודק /ת תוכנה!",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8682869",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: תל אביב.",
-        "מילות אזהרה: תל אביב.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "לחברה מובילה בתחום הביטוח באזור תל אביב דרוש /ה בודק /ת תוכנה QA",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8682577",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: תל אביב.",
-        "מילות אזהרה: תל אביב.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מילות אזהרה: lead, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: יש סימן לניסיון/בכירות גבוהים מדי."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "בודק /ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "באר שבע",
-      "locationKey": "beer_sheva",
-      "source": "AllJobs",
+      "title": "בודק/ת QA",
+      "company": "קורן טק טכנולוגיות",
+      "location": "תל אביב",
+      "locationKey": "tel_aviv",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8378467",
+      "url": "https://www.drushim.co.il/job/37321779/7f30c9eb/",
       "roleFamily": "qa",
-      "roleType": "qa_automation",
+      "roleType": "qa_manual",
       "seniority": "unknown",
       "isRelevantRole": true,
-      "fitScore": 44,
+      "fitScore": 40,
       "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "בדיקות ידניות — מתאים לכניסה לתחום.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "מיקום פחות מתאים: תל אביב.",
+        "מילות אזהרה: תל אביב, מרכז.",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "למטריקס (צפון) דרוש/ה מפתח/ת בדיקות ואינטגרציה",
+      "company": "צפון matrix",
+      "location": "יקנעם",
+      "locationKey": "yokneam",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37344294/e067c205/",
+      "roleFamily": "unknown",
+      "roleType": "unknown",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": false,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: יקנעם.",
+        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
+      ],
+      "warnings": [
+        "לא זוהה תפקיד יעד ברור.",
+        "נראה בכיר/ניהולי מדי.",
+        "מילות אזהרה: פיתוח, מפתח.",
+        "למידה: בעבר פסלת תפקיד דומה.",
+        "נפסל: לא זוהה תפקיד יעד מתאים."
+      ]
+    },
+    {
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "למטריקס (צפון) דרוש/ה מפתח/ת אוטומציה מנוסה",
+      "company": "צפון matrix",
+      "location": "קריות",
+      "locationKey": "krayot",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37344427/da05016e/",
+      "roleFamily": "qa",
+      "roleType": "qa_automation",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 96,
+      "recommendation": "review",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
         "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: קריות."
+      ],
+      "warnings": [
+        "מילות אזהרה: מנוסה, פיתוח, מפתח.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: התפקיד נראה קרוב, אבל חסר סימן ברור שזה QA תוכנה / תפקיד יעד מדויק."
+      ]
+    },
+    {
+      "decision": "kept_duplicate_or_saved",
+      "kept": true,
+      "title": "21062 - SW QA Manual Tester- Artillery tester",
+      "company": "Qualitest",
+      "location": "יקנעם",
+      "locationKey": "yokneam",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37094862/dddf2bba/",
+      "roleFamily": "qa",
+      "roleType": "qa_manual",
+      "seniority": "junior",
+      "isRelevantRole": true,
+      "fitScore": 100,
+      "recommendation": "apply",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "בדיקות ידניות — מתאים לכניסה לתחום.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: יקנעם."
+      ],
+      "warnings": []
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה",
+      "company": "קבוצת יעל",
+      "location": "תל אביב",
+      "locationKey": "tel_aviv",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37251859/a0022dc6/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
         "מתאים לג׳וניור / ללא ניסיון."
       ],
       "warnings": [
-        "מיקום פחות מתאים: באר שבע.",
-        "מילות אזהרה: באר שבע, אשקלון.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: תל אביב.",
+        "מילות אזהרה: תל אביב, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "דרוש /ה QA מנוסה לארגון בטחוני גדול בירושלים",
-      "company": "חברה חסויה",
+      "title": "בודק/ת תוכנה",
+      "company": "קבוצת יעל",
       "location": "ירושלים",
       "locationKey": "jerusalem",
-      "source": "AllJobs",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8642971",
+      "url": "https://www.drushim.co.il/job/37139759/a8544d9f/",
       "roleFamily": "qa",
       "roleType": "qa_general",
       "seniority": "senior_or_lead",
@@ -1011,163 +453,115 @@
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
         "מיקום פחות מתאים: ירושלים.",
-        "מילות אזהרה: ירושלים, מנוסה.",
+        "מילות אזהרה: ירושלים, 4 שנים.",
         "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
         "למידה: בעבר פסלת מיקום דומה (ירושלים).",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8651682",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: תל אביב.",
-        "מילות אזהרה: תל אביב.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק /ת תוכנה /תמיכה אפליקטיבית",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8592101",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8649352",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "מפתח/ת תוכנה",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
+      "title": "בודק/ת תוכנה- משרה זמנית",
+      "company": "קבוצת יעל",
+      "location": "תל אביב",
+      "locationKey": "tel_aviv",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8639589",
-      "roleFamily": "unknown",
-      "roleType": "unknown",
+      "url": "https://www.drushim.co.il/job/37139683/286e4a55/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
       "seniority": "unknown",
-      "isRelevantRole": false,
+      "isRelevantRole": true,
       "fitScore": 0,
       "recommendation": "skip",
       "status": "found",
       "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
         "מתאים לג׳וניור / ללא ניסיון."
       ],
       "warnings": [
-        "לא זוהה תפקיד יעד ברור.",
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מפתח.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "salesforce QA Champion",
-      "company": "חברה חסויה",
-      "location": "רעננה",
-      "locationKey": "raanana",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8649302",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: רעננה.",
-        "מילות אזהרה: רעננה.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: תל אביב.",
+        "מילות אזהרה: תל אביב, 6 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "בודק /ת תוכנה מנוסה לאזור המרכז",
-      "company": "חברה חסויה",
-      "location": "ראשון לציון",
-      "locationKey": "rishon_lezion",
-      "source": "AllJobs",
+      "title": "לארגון פיננסי מוביל דרוש/ה בודק/ת תוכנה",
+      "company": "TALPIOT",
+      "location": "Israel",
+      "locationKey": null,
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8513152",
+      "url": "https://www.drushim.co.il/job/37276160/041d7d33/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "המיקום לא זוהה בוודאות.",
+        "מילות אזהרה: מנוסה, 4 שנים, בני ברק.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: המיקום לא זוהה בוודאות."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה מנוסה",
+      "company": "matrix (TESTING)",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37337568/ff88fd89/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מנוסה, 6 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק.ת תוכנה ידני",
+      "company": "קבוצת Aman",
+      "location": "תל אביב",
+      "locationKey": "tel_aviv",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37272626/025fb2c5/",
       "roleFamily": "qa",
       "roleType": "qa_manual",
       "seniority": "senior_or_lead",
@@ -1182,27 +576,115 @@
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
-        "מיקום פחות מתאים: ראשון לציון.",
-        "מילות אזהרה: ראשון לציון, מרכז, מנוסה.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: תל אביב.",
+        "מילות אזהרה: תל אביב, מרכז, 4 שנים.",
         "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "בודק.ת תוכנה",
-      "company": "חברה חסויה",
+      "title": "בודק/ת תוכנה – מערכות פיננסיות",
+      "company": "matrix (TESTING)",
+      "location": "רמת גן",
+      "locationKey": "ramat_gan",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37331469/c858f4ed/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "unknown",
+      "isRelevantRole": true,
+      "fitScore": 40,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "מיקום פחות מתאים: רמת גן.",
+        "מילות אזהרה: רמת גן.",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה SAP מנוסה",
+      "company": "matrix (TESTING)",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37331260/8308fd2f/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מנוסה, 6 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה מנוסה",
+      "company": "matrix (TESTING)",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37331336/03cbc690/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מנוסה, 6 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה ידני/ת",
+      "company": "matrix (TESTING)",
       "location": "חולון",
       "locationKey": "holon",
-      "source": "AllJobs",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8648550",
+      "url": "https://www.drushim.co.il/job/37331355/3cde907b/",
       "roleFamily": "qa",
       "roleType": "qa_manual",
-      "seniority": "unknown",
+      "seniority": "senior_or_lead",
       "isRelevantRole": true,
       "fitScore": 0,
       "recommendation": "skip",
@@ -1214,252 +696,59 @@
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
         "מיקום פחות מתאים: חולון.",
-        "מילות אזהרה: חולון, מרכז, מנהל, פיתוח, פקיד.",
+        "מילות אזהרה: חולון, מנהל, מפתח, 4 שנים.",
         "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
-      "decision": "filtered_status_skipped",
+      "decision": "filtered_low_score",
       "kept": false,
-      "title": "QA בסביבת WEB",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
+      "title": "בודק/ת תוכנה Salesforce",
+      "company": "matrix (TESTING)",
+      "location": "Remote",
+      "locationKey": "remote",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8638563",
+      "url": "https://www.drushim.co.il/job/37331507/dc1a6851/",
       "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
       "isRelevantRole": true,
       "fitScore": 0,
-      "recommendation": "skip",
-      "status": "skipped",
-      "reasons": [],
-      "warnings": [
-        "נפסל אוטומטית: שירות לקוחות / טלפוני / מכירות / משמרות."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודקי תוכנה ידניים",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8676711",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 44,
       "recommendation": "review",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_recommendation_skip",
-      "kept": false,
-      "title": "דרוש /ה בודק /ת salesforce",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8485705",
-      "roleFamily": "information_systems",
-      "roleType": "sap_implementer",
-      "roleProfileId": "sap_implementer",
-      "roleProfileName": "מיישם מערכות מידע",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 0,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד יעד: מיישם מערכות מידע.",
-        "זוהה תפקיד מערכות מידע / הטמעה.",
-        "SAP / ERP — עשוי להיות רלוונטי אם לא בכיר מדי.",
-        "מתאים לג׳וניור / ללא ניסיון."
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: Remote."
       ],
       "warnings": [
         "נראה בכיר/ניהולי מדי.",
-        "מיקום פחות מתאים: תל אביב.",
-        "נראה כמו אדמיניסטרציה / לוגיסטיקה / מעבדה ולא תפקיד תוכנה ברור.",
-        "מילות אזהרה: תל אביב, פתח תקווה, רמת גן, ניסיון מוכח, פקיד.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מילות אזהרה: כפר סבא, מנוסה, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: יש סימן לניסיון/בכירות גבוהים מדי."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "Manual QA",
-      "company": "חברה חסויה",
-      "location": "תל אביב",
-      "locationKey": "tel_aviv",
-      "source": "AllJobs",
+      "title": "בודק/ת תוכנה ומפתח/ת אוטומציה",
+      "company": "Elad Software",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8668406",
-      "roleFamily": "qa",
-      "roleType": "qa_manual",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 12,
-      "recommendation": "skip",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "בדיקות ידניות — מתאים לכניסה לתחום.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "מילות יעד שנמצאו: Manual QA."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: תל אביב.",
-        "מילות אזהרה: תל אביב, Tel Aviv, developer.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת תוכנה QA / תמיכה אפליקטיבית",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8684015",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "QA Engineer",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8688112",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 82,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+16)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "איש QA",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8646179",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 88,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "QA Engineer - ERP",
-      "company": "חברה חסויה",
-      "location": "רעננה",
-      "locationKey": "raanana",
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8680345",
-      "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 68,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "מיקום פחות מתאים: רעננה.",
-        "מילות אזהרה: רעננה.",
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "מפתחי אוטומציה SAP",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8676740",
+      "url": "https://www.drushim.co.il/job/37278326/07a535ed/",
       "roleFamily": "qa",
       "roleType": "qa_automation",
-      "seniority": "unknown",
+      "seniority": "senior_or_lead",
       "isRelevantRole": true,
-      "fitScore": 66,
-      "recommendation": "review",
+      "fitScore": 0,
+      "recommendation": "skip",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
@@ -1467,24 +756,90 @@
         "מתאים לג׳וניור / ללא ניסיון."
       ],
       "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "מילות אזהרה: מפתח.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מפתח, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
       "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "לחברת אומגה עבור רשות שדות התעופה דרוש /ה בודק /ת לצוות הבדיקות עם התמחות במודול SD",
-      "company": "חברה חסויה",
+      "title": "בודק/ת תוכנה SAP",
+      "company": "בינת סמך.",
+      "location": "תל אביב",
+      "locationKey": "tel_aviv",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37102956/f6c1ecaa/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: תל אביב.",
+        "מילות אזהרה: תל אביב, מנוסה, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק תוכנה SAP",
+      "company": "קבוצת יעל",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37139968/ddd4bcfb/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מילות יעד שנמצאו: בודק תוכנה."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק\\ת תוכנה לתחום ERP מודול SD",
+      "company": "matrix (TESTING)",
       "location": "Israel",
       "locationKey": null,
-      "source": "AllJobs",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8684136",
+      "url": "https://www.drushim.co.il/job/37331146/af3de645/",
       "roleFamily": "unknown",
       "roleType": "unknown",
-      "seniority": "unknown",
+      "seniority": "senior_or_lead",
       "isRelevantRole": false,
       "fitScore": 0,
       "recommendation": "skip",
@@ -1494,94 +849,190 @@
       ],
       "warnings": [
         "לא זוהה תפקיד יעד ברור.",
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
         "המיקום לא זוהה בוודאות.",
+        "מילות אזהרה: מנוסה, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
         "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — לא מספיק ג׳וניור / לא כניסה.",
+        "נפסל: לא זוהה תפקיד יעד מתאים."
       ]
     },
     {
-      "decision": "filtered_other",
+      "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "Design QA Engineer",
-      "company": "חברה חסויה",
-      "location": "נתניה",
-      "locationKey": "netanya",
-      "source": "AllJobs",
+      "title": "דרוש/ה בודק/ת תוכנה ואוטומציה",
+      "company": "- חסוי -",
+      "location": "Remote",
+      "locationKey": "remote",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8689621",
+      "url": "https://www.drushim.co.il/job/37059256/52c5a8c2/",
+      "roleFamily": "qa",
+      "roleType": "qa_automation",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
+        "מתאים לג׳וניור / ללא ניסיון.",
+        "מיקום מתאים: Remote."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מילות אזהרה: מנוסה, 4 שנים, בני ברק.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "נשאר לבדיקה: יש סימן לניסיון/בכירות גבוהים מדי."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "דרוש/ה בודק/ת תוכנה ואוטומציה זמני החלפה לחל\"ד",
+      "company": "TALPIOT",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37058534/1882c83f/",
+      "roleFamily": "qa",
+      "roleType": "qa_automation",
+      "seniority": "senior_or_lead",
+      "isRelevantRole": true,
+      "fitScore": 0,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "אוטומציה מוזכרת — יתרון, אבל לבדוק דרישות ניסיון.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מנוסה, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "בודק/ת תוכנה CRM",
+      "company": "matrix (TESTING)",
+      "location": "רמת גן",
+      "locationKey": "ramat_gan",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37331450/c4f17120/",
       "roleFamily": "qa",
       "roleType": "qa_general",
       "seniority": "unknown",
       "isRelevantRole": true,
-      "fitScore": 56,
-      "recommendation": "review",
+      "fitScore": 40,
+      "recommendation": "skip",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+10)."
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "מיקום פחות מתאים: רמת גן.",
+        "מילות אזהרה: רמת גן.",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "לחברת הראל דרוש/ה בודק/ת QA - זמני/ת!",
+      "company": "הראל ביטוח ופיננסים",
+      "location": "רמת גן",
+      "locationKey": "ramat_gan",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37251042/6ce2a291/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "unknown",
+      "isRelevantRole": true,
+      "fitScore": 40,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
+      ],
+      "warnings": [
+        "מיקום פחות מתאים: רמת גן.",
+        "מילות אזהרה: רמת גן.",
+        "נפסל: מיקום לא מתאים."
+      ]
+    },
+    {
+      "decision": "filtered_recommendation_skip",
+      "kept": false,
+      "title": "20715 - QA Tester - Observer",
+      "company": "Qualitest",
+      "location": "נתניה",
+      "locationKey": "netanya",
+      "source": "Drushim",
+      "sourceQuery": "בודק תוכנה junior חיפה",
+      "url": "https://www.drushim.co.il/job/37283019/36c37b81/",
+      "roleFamily": "qa",
+      "roleType": "qa_general",
+      "seniority": "junior",
+      "isRelevantRole": true,
+      "fitScore": 40,
+      "recommendation": "skip",
+      "status": "found",
+      "reasons": [
+        "זוהה תפקיד QA / בדיקות תוכנה.",
+        "מתאים לג׳וניור / ללא ניסיון."
       ],
       "warnings": [
         "מיקום פחות מתאים: נתניה.",
         "מילות אזהרה: נתניה.",
-        "למידה: בעבר פסלת תפקיד דומה."
+        "נפסל: מיקום לא מתאים."
       ]
     },
     {
-      "decision": "filtered_other",
+      "decision": "filtered_recommendation_skip",
       "kept": false,
-      "title": "QA Tester Temporary Position",
-      "company": "חברה חסויה",
-      "location": "יזרעאלסוג משרה:",
-      "locationKey": "יזרעאלסוג_משרה:",
-      "source": "AllJobs",
+      "title": "דרוש/ה QA BI Tester",
+      "company": "matrix DnA",
+      "location": "ירושלים",
+      "locationKey": "jerusalem",
+      "source": "Drushim",
       "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8688088",
+      "url": "https://www.drushim.co.il/job/37261967/9641246b/",
       "roleFamily": "qa",
-      "roleType": "qa_general",
-      "seniority": "unknown",
+      "roleType": "qa_manual",
+      "seniority": "senior_or_lead",
       "isRelevantRole": true,
-      "fitScore": 98,
-      "recommendation": "review",
+      "fitScore": 0,
+      "recommendation": "skip",
       "status": "found",
       "reasons": [
         "זוהה תפקיד QA / בדיקות תוכנה.",
-        "מתאים לג׳וניור / ללא ניסיון.",
-        "למידה: משרות דומות נשמרו או סומנו כהוגשו בעבר (+22)."
-      ],
-      "warnings": [
-        "למידה: בעבר פסלת תפקיד דומה."
-      ]
-    },
-    {
-      "decision": "filtered_other",
-      "kept": false,
-      "title": "בודק/ת SAP",
-      "company": "חברה חסויה",
-      "location": "Israel",
-      "locationKey": null,
-      "source": "AllJobs",
-      "sourceQuery": "בודק תוכנה junior חיפה",
-      "url": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8683967",
-      "roleFamily": "information_systems",
-      "roleType": "sap_implementer",
-      "roleProfileId": "sap_implementer",
-      "roleProfileName": "מיישם מערכות מידע",
-      "seniority": "unknown",
-      "isRelevantRole": true,
-      "fitScore": 50,
-      "recommendation": "review",
-      "status": "found",
-      "reasons": [
-        "זוהה תפקיד יעד: מיישם מערכות מידע.",
-        "זוהה תפקיד מערכות מידע / הטמעה.",
-        "SAP / ERP — עשוי להיות רלוונטי אם לא בכיר מדי.",
+        "בדיקות ידניות — מתאים לכניסה לתחום.",
         "מתאים לג׳וניור / ללא ניסיון."
       ],
       "warnings": [
-        "המיקום לא זוהה בוודאות.",
-        "למידה: בעבר פסלת תפקיד דומה.",
-        "למידה: משרות דומות נדחו בעבר (-32)."
+        "נראה בכיר/ניהולי מדי.",
+        "נראה שדורש 4 שנות ניסיון ומעלה.",
+        "מיקום פחות מתאים: ירושלים.",
+        "מילות אזהרה: ירושלים, מנוסה, מפתח, 4 שנים.",
+        "למידה: בעבר פסלת משרות עם מאפיין דומה — בכיר / ניהולי מדי.",
+        "למידה: בעבר פסלת מיקום דומה (ירושלים).",
+        "נפסל: מיקום לא מתאים."
       ]
     }
   ]

@@ -10,6 +10,7 @@ import {
 import { readJson, writeJson } from "./fileStore.js";
 import { createJobId, getBestApplyLink, uniqueById } from "./utils.js";
 import { scoreJob } from "./scoring.js";
+import { applyDecisionGates } from "./decisionGates.js";
 import { searchGoogleOrganic } from "./googleSearch.js";
 import { searchWithPlaywright } from "./playwrightCrawler.js";
 import { searchDrushim } from "./drushimCrawler.js";
@@ -73,14 +74,17 @@ function printDebugJobPreview(jobs, label = "DEBUG JOBS") {
 }
 
 function hasBadSeniorityForMainList(job = {}) {
-  const text = [job.title, job.description, ...(job.warnings || [])]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  const title = String(job.title || "").toLowerCase();
+  const description = String(job.description || "").toLowerCase();
+  const text = [title, description].filter(Boolean).join(" ");
 
-  return /ראש\s*צוות|ר["״]?צ|cto|מנהל\/ת|מנהל|בכיר|בכירה|team\s*lead|lead|manager|5-6\s*שנים|4\s*שנים|4\+|5\+|6\s*שנים|ניסיון\s*מוכח/i.test(
-    text,
-  );
+  const titleSeniorSignal =
+    /ראש\s*צוות|ר["״]?צ|team\s*lead|\blead\b|manager|cto|מנהל(?:\/ת)?|בכיר|בכירה/i.test(title);
+
+  const explicitExperienceSignal =
+    /(?:4|5|6|7|8|9|10)\+?\s*(?:שנים|שנות|years)|(?:ניסיון|נסיון|experience).{0,30}(?:4|5|6|7|8|9|10)\+?/i.test(text);
+
+  return titleSeniorSignal || explicitExperienceSignal;
 }
 
 function hasJunkBusinessModel(job = {}) {
@@ -159,6 +163,17 @@ function getJobFingerprint(job = {}) {
   return [title, company, location, role].filter(Boolean).join("|");
 }
 
+function scoreAndGateJob(job, profile, keywords, feedback) {
+  const scoreResult = scoreJob(job, profile, keywords, feedback);
+
+  const scoredJob = {
+    ...job,
+    ...scoreResult,
+  };
+
+  return applyDecisionGates(scoredJob);
+}
+
 function dedupeJobsByFingerprint(jobs = []) {
   const seen = new Map();
 
@@ -209,12 +224,24 @@ function isUsableJob(job = {}) {
     "karmiel",
   ]);
 
-  if (!allowedMainLocationKeys.has(locationKey)) {
+  const isUnknownLocation =
+    !locationKey ||
+    locationKey === "unknown" ||
+    locationText === "Israel";
+
+  const allowUnknownAllJobsQaForReview =
+    source === "AllJobs" &&
+    isUnknownLocation &&
+    (roleFamily === "qa" || roleFamily === "automation") &&
+    recommendation !== "skip" &&
+    score >= 75;
+
+  if (!allowedMainLocationKeys.has(locationKey) && !allowUnknownAllJobsQaForReview) {
     return false;
   }
 
   const blockedLocationText =
-    /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|פתח\s*תקווה|ראש\s*העין|מרכז/i;
+    /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|מרכז|השרון|שרון|השפלה|שפלה|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel|center|centre|merkaz/i;
 
   const blockedLocationKeys = new Set([
     "or_yehuda",
@@ -238,7 +265,10 @@ function isUsableJob(job = {}) {
   if (
     blockedLocationKeys.has(locationKey) ||
     blockedLocationText.test(locationText) ||
-    blockedLocationText.test(locationKey.replaceAll("_", " "))
+    blockedLocationText.test(locationKey.replaceAll("_", " ")) ||
+    blockedLocationText.test([job.title, job.description].filter(Boolean).join(" ")) ||
+    blockedLocationText.test([job.title, job.description].filter(Boolean).join(" ")) ||
+    blockedLocationText.test([job.title, job.description].filter(Boolean).join(" "))
   ) {
     return false;
   }
@@ -249,7 +279,13 @@ function isUsableJob(job = {}) {
   if (roleFamily === "irrelevant") return false;
   if (job.isRelevantRole === false) return false;
   if (hasJunkBusinessModel(job)) return false;
-  if (hasAdminOrNonSoftwareNoise(job)) return false;
+  if (
+    roleFamily !== "qa" &&
+    roleFamily !== "automation" &&
+    hasAdminOrNonSoftwareNoise(job)
+  ) {
+    return false;
+  }
 
   const dynamicMinScore = Number(job.mainListMinScore || 55);
 
@@ -505,6 +541,491 @@ function sortJobs(jobs) {
   });
 }
 
+
+const MANUAL_JOB_FIELDS_TO_PRESERVE = [
+  "status",
+  "notes",
+  "userNotes",
+  "reviewNotes",
+  "manualNotes",
+  "rejectionReason",
+  "rejectReason",
+  "rejectedReason",
+  "feedbackReason",
+  "feedbackReasons",
+  "manualReasons",
+  "appliedAt",
+  "rejectedAt",
+  "archivedAt",
+  "savedAt",
+  "applicationStatus",
+  "emailDraftId",
+];
+
+function getMergeKey(job = {}) {
+  return finalFixMergeKey(job);
+}
+
+function isBadLocationValue(value = "") {
+  return /סוג\s*משרה|היקף\s*משרה|דרישות|תיאור\s*התפקיד/i.test(String(value || ""));
+}
+
+function chooseBetterLocation(existingLocation, incomingLocation) {
+  const existing = String(existingLocation || "").trim();
+  const incoming = String(incomingLocation || "").trim();
+
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+
+  if (isBadLocationValue(incoming) && !isBadLocationValue(existing)) {
+    return existing;
+  }
+
+  if (isBadLocationValue(existing) && !isBadLocationValue(incoming)) {
+    return incoming;
+  }
+
+  if (incoming.length > 80 && existing.length <= 40) {
+    return existing;
+  }
+
+  return incoming;
+}
+
+function mergeExistingJob(existing = {}, incoming = {}) {
+  const now = new Date().toISOString();
+
+  const merged = {
+    ...existing,
+    ...incoming,
+    id: existing.id || incoming.id || createJobId(incoming),
+    foundAt: existing.foundAt || incoming.foundAt || now,
+    firstSeenAt: existing.firstSeenAt || existing.foundAt || incoming.foundAt || now,
+    lastSeenAt: now,
+    seenCount: Number(existing.seenCount || 0) + 1,
+  };
+
+  merged.location = chooseBetterLocation(existing.location, incoming.location);
+
+  for (const field of MANUAL_JOB_FIELDS_TO_PRESERVE) {
+    if (existing[field] !== undefined && existing[field] !== null && existing[field] !== "") {
+      merged[field] = existing[field];
+    }
+  }
+
+  return merged;
+}
+
+function mergeJobsUpdatingExisting(existingJobs = [], incomingJobs = []) {
+  const byKey = new Map();
+
+  for (const job of existingJobs) {
+    const key = getMergeKey(job);
+    if (key) byKey.set(key, job);
+  }
+
+  for (const job of incomingJobs) {
+    const key = getMergeKey(job);
+    if (!key) continue;
+
+    const existing = byKey.get(key);
+    byKey.set(
+      key,
+      existing
+        ? mergeExistingJob(existing, job)
+        : {
+            ...job,
+            firstSeenAt: job.firstSeenAt || job.foundAt || new Date().toISOString(),
+            lastSeenAt: new Date().toISOString(),
+            seenCount: Number(job.seenCount || 0) + 1,
+          },
+    );
+  }
+
+  return sortJobs([...byKey.values()]);
+}
+
+
+function hasTooMuchExperienceForApply(job = {}) {
+  const text = [job.title, job.description, ...(job.warnings || [])]
+    .filter(Boolean)
+    .join(" ");
+
+  return /(?:3|4|5|6|7|8|9|10)\+?\s*(?:שנים|שנות|years)|(?:ניסיון|נסיון|experience).{0,40}(?:3|4|5|6|7|8|9|10)\+?|יותר\s*מדי\s*ניסיון|יותר\s*מדי\s*נסיון/i.test(text);
+}
+
+function normalizeScoredJobForMainFlow(job = {}) {
+  const next = { ...job };
+
+  if (
+    next.recommendation === "apply" &&
+    (hasTooMuchExperienceForApply(next) || hasBadSeniorityForMainList(next))
+  ) {
+    next.recommendation = "review";
+    next.warnings = [
+      ...(next.warnings || []),
+      "הורד ל-review: יש סימן לניסיון/בכירות גבוהים מדי.",
+    ];
+  }
+
+  return next;
+}
+
+
+const QA_SAFE_APPLY_LOCATION_KEYS = new Set([
+  "haifa",
+  "krayot",
+  "yokneam",
+  "north",
+  "remote",
+  "nesher",
+  "tirat_carmel",
+  "nahariya",
+  "acre",
+  "karmiel",
+]);
+
+function hasQaTitleSignal(job = {}) {
+  const title = String(job.title || "").toLowerCase();
+
+  return (
+    /(?:^|[^a-z])qa(?:$|[^a-z])/i.test(title) ||
+    /tester|testing|automation/i.test(title) ||
+    /בודק\s*[\/\.]?\s*(?:\/ת|ת)?\s*תוכנה/i.test(title) ||
+    /בודק\/ת\s*תוכנה/i.test(title) ||
+    /בודק\.ת\s*תוכנה/i.test(title) ||
+    /בודקי\s*תוכנה|בודקות\s*תוכנה|בדיקות\s*תוכנה|איש\s*\/אשת\s*qa|איש\s*qa|אשת\s*qa/i.test(title)
+  );
+}
+
+function inferQaRoleTypeFromTitle(job = {}) {
+  const text = [job.title, job.description].filter(Boolean).join(" ").toLowerCase();
+
+  if (/אוטומציה|automation|selenium|playwright|cypress/i.test(text)) {
+    return "qa_automation";
+  }
+
+  if (/ידני|ידניות|manual/i.test(text)) {
+    return "qa_manual";
+  }
+
+  return "qa_general";
+}
+
+function normalizeJobBeforeScoring(job = {}) {
+  const next = { ...job };
+
+  if (hasQaTitleSignal(next)) {
+    next.roleFamily = "qa";
+    next.roleType = inferQaRoleTypeFromTitle(next);
+    next.isRelevantRole = true;
+    next.roleConfidence = "high";
+
+    // If a broad role profile like information systems captured the job,
+    // remove it so QA title wins.
+    if (
+      next.roleProfileId &&
+      !String(next.roleProfileId).toLowerCase().includes("qa")
+    ) {
+      delete next.roleProfileId;
+      delete next.roleProfileName;
+      delete next.roleProfileMatched;
+      delete next.roleProfileScoreBonus;
+    }
+  }
+
+  return next;
+}
+
+function normalizeScoredJobAfterFlow(job = {}) {
+  const next = { ...job };
+  const warnings = Array.isArray(next.warnings) ? next.warnings : [];
+
+  const isQa =
+    next.roleFamily === "qa" ||
+    next.roleFamily === "automation" ||
+    hasQaTitleSignal(next);
+
+  const isGoodApplyLocation =
+    QA_SAFE_APPLY_LOCATION_KEYS.has(next.locationKey) ||
+    next.locationKey === "remote";
+
+  const hasBadExperienceOrSeniority =
+    hasTooMuchExperienceForApply(next) ||
+    hasBadSeniorityForMainList(next);
+
+  if (
+    next.recommendation === "review" &&
+    isQa &&
+    isGoodApplyLocation &&
+    Number(next.fitScore || 0) >= 75 &&
+    warnings.length === 0 &&
+    !hasBadExperienceOrSeniority
+  ) {
+    next.recommendation = "apply";
+  }
+
+  if (
+    next.recommendation === "review" &&
+    Number(next.fitScore || 0) >= 85 &&
+    warnings.length === 0
+  ) {
+    next.warnings = [
+      ...warnings,
+      "נשאר לבדיקה ידנית למרות ניקוד גבוה — לבדוק ידנית לפני הגשה.",
+    ];
+  }
+
+  return next;
+}
+
+function prepareAndScoreJob(job, profile, keywords, feedback) {
+  const normalizedJob = normalizeJobBeforeScoring(job);
+
+  const scoreResult = scoreAndGateJob(normalizedJob, profile, keywords, feedback);
+
+  const scoredJob = {
+    ...normalizedJob,
+    ...scoreResult,
+  };
+
+  const guardedJob = applyFlowGuards(scoredJob);
+  const postFlowJob = normalizeScoredJobAfterFlow(guardedJob);
+
+  return applyDecisionGates(postFlowJob);
+}
+
+// BEGIN FINAL_JOB_SCAN_FIX_HELPERS
+const FINAL_FIX_GOOD_LOCATION_KEYS = new Set([
+  "haifa",
+  "krayot",
+  "yokneam",
+  "north",
+  "remote",
+  "nesher",
+  "tirat_carmel",
+  "nahariya",
+  "acre",
+  "karmiel",
+]);
+
+const FINAL_FIX_BAD_LOCATION_TEXT =
+  /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|מרכז|השרון|שרון|השפלה|שפלה|בני\s*ברק|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|bnei\s*brak|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel|center|centre|merkaz/i;
+
+function finalFixExtractAllJobsJobId(job = {}) {
+  const url = String(job.url || job.link || "");
+  return url.match(/[?&]JobID=(\d+)/i)?.[1] || "";
+}
+
+function finalFixMergeKey(job = {}) {
+  const allJobsJobId = finalFixExtractAllJobsJobId(job);
+  if (allJobsJobId) return "alljobs:" + allJobsJobId;
+
+  return getStableJobKey(job) || job.id || createJobId(job);
+}
+
+
+function finalFixHasRealLocation(job = {}) {
+  const location = String(job.location || "").trim();
+  const locationKey = String(job.locationKey || "").trim();
+
+  return Boolean(
+    location &&
+      location !== "Israel" &&
+      locationKey &&
+      locationKey !== "unknown" &&
+      locationKey !== "null"
+  );
+}
+
+function finalFixHasBlockedLocation(job = {}) {
+  const text = [
+    job.title,
+    job.company,
+    job.location,
+    String(job.locationKey || "").replaceAll("_", " "),
+    job.description,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return FINAL_FIX_BAD_LOCATION_TEXT.test(text);
+}
+
+function finalFixIsConfidentialCompany(value = "") {
+  return /חברה\s*חסויה|^חסויה$/i.test(String(value || "").trim());
+}
+
+function finalFixVariantQuality(job = {}) {
+  let score = 0;
+
+  if (finalFixHasRealLocation(job)) score += 100;
+  if (finalFixHasBlockedLocation(job)) score += 60; // real bad location beats unknown, so it can be skipped.
+  if (job.company && !finalFixIsConfidentialCompany(job.company)) score += 15;
+  score += Math.min(40, Math.floor(String(job.description || "").length / 120));
+
+  return score;
+}
+
+function finalFixMergeIncomingVariant(existing = {}, incoming = {}) {
+  const first = finalFixVariantQuality(existing) >= finalFixVariantQuality(incoming)
+    ? existing
+    : incoming;
+  const second = first === existing ? incoming : existing;
+
+  const merged = {
+    ...second,
+    ...first,
+    id: existing.id || incoming.id || createJobId(first),
+    foundAt: existing.foundAt || incoming.foundAt || new Date().toISOString(),
+  };
+
+  if (finalFixHasRealLocation(first)) {
+    merged.location = first.location;
+    merged.locationKey = first.locationKey;
+  } else if (finalFixHasRealLocation(second)) {
+    merged.location = second.location;
+    merged.locationKey = second.locationKey;
+  }
+
+  if (
+    second.company &&
+    !finalFixIsConfidentialCompany(second.company) &&
+    (!merged.company || finalFixIsConfidentialCompany(merged.company))
+  ) {
+    merged.company = second.company;
+  }
+
+  if (String(second.description || "").length > String(merged.description || "").length) {
+    merged.description = second.description;
+  }
+
+  return merged;
+}
+
+function finalFixMergeIncomingJobsByKey(jobs = []) {
+  const byKey = new Map();
+
+  for (const job of jobs) {
+    const key = finalFixMergeKey(job);
+    if (!key) continue;
+
+    const existing = byKey.get(key);
+    byKey.set(key, existing ? finalFixMergeIncomingVariant(existing, job) : job);
+  }
+
+  return [...byKey.values()];
+}
+
+function finalFixHasQaTitleSignal(job = {}) {
+  const title = String(job.title || "").toLowerCase();
+
+  return (
+    /(?:^|[^a-z])qa(?:$|[^a-z])/i.test(title) ||
+    /tester|testing|automation/i.test(title) ||
+    /בודק\s*[\/.]?\s*(?:\/ת|ת)?\s*תוכנה/i.test(title) ||
+    /בודק\/ת\s*תוכנה/i.test(title) ||
+    /בודק\.ת\s*תוכנה/i.test(title) ||
+    /בודקי\s*תוכנה|בודקות\s*תוכנה|בדיקות\s*תוכנה|איש\s*\/אשת\s*qa|איש\s*qa|אשת\s*qa/i.test(title)
+  );
+}
+
+function finalFixInferQaRoleType(job = {}) {
+  const text = [job.title, job.description].filter(Boolean).join(" ").toLowerCase();
+
+  if (/אוטומציה|automation|selenium|playwright|cypress/i.test(text)) {
+    return "qa_automation";
+  }
+
+  if (/ידני|ידניות|manual/i.test(text)) {
+    return "qa_manual";
+  }
+
+  return "qa_general";
+}
+
+function finalFixNormalizeJobBeforeScoring(job = {}) {
+  const next = { ...job };
+
+  if (finalFixHasQaTitleSignal(next)) {
+    next.roleFamily = "qa";
+    next.roleType = finalFixInferQaRoleType(next);
+    next.isRelevantRole = true;
+    next.roleConfidence = "high";
+
+    if (
+      next.roleProfileId &&
+      !String(next.roleProfileId).toLowerCase().includes("qa")
+    ) {
+      delete next.roleProfileId;
+      delete next.roleProfileName;
+      delete next.roleProfileMatched;
+      delete next.roleProfileScoreBonus;
+    }
+  }
+
+  return next;
+}
+
+function finalFixHasTooMuchExperience(job = {}) {
+  const text = [job.title, job.description, ...(job.warnings || [])]
+    .filter(Boolean)
+    .join(" ");
+
+  return /(?:3|4|5|6|7|8|9|10)\+?\s*(?:שנים|שנות|שנה|years?|yrs?)|(?:ניסיון|נסיון|experience).{0,50}(?:3|4|5|6|7|8|9|10)\+?|יותר\s*מדי\s*ניסיון|יותר\s*מדי\s*נסיון/i.test(text);
+}
+
+function finalFixNormalizeScoredJobAfterFlow(job = {}) {
+  const next = { ...job };
+  const warnings = Array.isArray(next.warnings) ? next.warnings : [];
+
+  if (finalFixHasBlockedLocation(next)) {
+    next.recommendation = "skip";
+    return next;
+  }
+
+  const isQa = next.roleFamily === "qa" || next.roleFamily === "automation" || finalFixHasQaTitleSignal(next);
+  const isGoodLocation = FINAL_FIX_GOOD_LOCATION_KEYS.has(next.locationKey) || next.locationKey === "remote";
+  const hasBadExperience = finalFixHasTooMuchExperience(next) || hasBadSeniorityForMainList(next);
+
+  if (
+    next.recommendation === "review" &&
+    isQa &&
+    isGoodLocation &&
+    Number(next.fitScore || 0) >= 75 &&
+    warnings.length === 0 &&
+    !hasBadExperience
+  ) {
+    next.recommendation = "apply";
+  }
+
+  if (
+    next.recommendation === "apply" &&
+    (!isGoodLocation || hasBadExperience)
+  ) {
+    next.recommendation = "review";
+  }
+
+  return next;
+}
+
+function finalFixNormalizeMainFlowSafe(job = {}) {
+  return typeof normalizeScoredJobForMainFlow === "function"
+    ? normalizeScoredJobForMainFlow(job)
+    : job;
+}
+
+function finalFixPrepareAndScoreJob(job, profile, keywords, feedback) {
+  const preparedJob = finalFixNormalizeJobBeforeScoring(job);
+
+  return finalFixNormalizeScoredJobAfterFlow(
+    finalFixNormalizeMainFlowSafe({
+      ...preparedJob,
+      ...scoreAndGateJob(preparedJob, profile, keywords, feedback),
+    }),
+  );
+}
+// END FINAL_JOB_SCAN_FIX_HELPERS
 function finalizeNormalizedJob(job) {
   const enrichedJob = enrichJob(job);
 
@@ -565,11 +1086,33 @@ function normalizeDrushimJob(result, sourceQuery) {
   return finalizeNormalizedJob(job);
 }
 
+
+function cleanJobLocation(value = "") {
+  let text = String(value || "").replace(/\s+/g, " ").trim();
+
+  if (!text) return "Israel";
+
+  // AllJobs sometimes returns things like:
+  // "חיפהסוג משרה:" or "כפר סבאסוג משרה: משרה מלאה..."
+  text = text
+    .replace(/(?:סוג\s*משרה|היקף\s*משרה|דרישות|תיאור\s*התפקיד).*$/i, "")
+    .trim();
+
+  if (!text) return "Israel";
+
+  // Location should be short. If it is still a full paragraph, fallback safely.
+  if (text.length > 80) return "Israel";
+
+  return text;
+}
+
 function normalizeAllJobsJob(result, sourceQuery) {
+  const rawLocation = result.location || "Israel";
   const job = {
     title: result.title || "Untitled job",
     company: result.company || "AllJobs",
-    location: result.location || "Israel",
+    location: cleanJobLocation(rawLocation),
+    rawLocation,
     description: result.description || "",
     via: "AllJobs Direct",
     source: "AllJobs",
@@ -715,14 +1258,26 @@ function usesProvider(providers, provider) {
 }
 
 async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
-  const jobsForThisPartialRun = limitDebugJobs(
-    scoredPartialJobs.filter(isUsableJob),
+  const currentKeys = new Set(currentJobs.map(getMergeKey).filter(Boolean));
+
+  const existingUpdates = scoredPartialJobs.filter((job) =>
+    currentKeys.has(getMergeKey(job)),
   );
+
+  const usableNewJobs = scoredPartialJobs.filter(
+    (job) => !currentKeys.has(getMergeKey(job)) && isUsableJob(job),
+  );
+
+  const jobsForThisPartialRun = limitDebugJobs([
+    ...existingUpdates,
+    ...usableNewJobs,
+  ]);
 
   printDebugJobPreview(jobsForThisPartialRun, "DEBUG PARTIAL JOB PREVIEW");
 
-  const partialMerged = sortJobs(
-    uniqueById([...currentJobs, ...jobsForThisPartialRun]),
+  const partialMerged = mergeJobsUpdatingExisting(
+    currentJobs,
+    jobsForThisPartialRun,
   );
 
   if (DEBUG_DRY_RUN) {
@@ -738,7 +1293,9 @@ async function savePartialJobs({ currentJobs, scoredPartialJobs }) {
     `Wrote partial jobs.json: ${JOBS_FILE} (${partialMerged.length} jobs)`,
   );
 
-  console.log(`Saved ${partialMerged.length} jobs so far`);
+  console.log(
+    `Saved ${partialMerged.length} jobs so far | updated existing: ${existingUpdates.length} | usable new: ${usableNewJobs.length}`,
+  );
 }
 
 function normalizeProviderName(provider = "") {
@@ -941,6 +1498,10 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
     readJson(SITE_SOURCES_FILE, []),
   ]);
 
+  const existingKeysAtRunStart = new Set(
+    existingJobs.map(getMergeKey).filter(Boolean),
+  );
+
   let incomingJobs = [];
   let stopped = false;
   let stopReason = "";
@@ -1036,10 +1597,9 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
 
         incomingJobs.push(...normalizedJobs);
 
-        const scoredPartialJobs = normalizedJobs.map((job) => ({
-          ...job,
-          ...scoreJob(job, profile, keywords, feedback),
-        }));
+        const scoredPartialJobs = normalizedJobs.map((job) =>
+          finalFixPrepareAndScoreJob(job, profile, keywords, feedback),
+        );
 
         addProviderStats(statsName, { scored: scoredPartialJobs.length });
 
@@ -1103,10 +1663,11 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
     }
   }
 
-  const scoredIncoming = incomingJobs.map((job) => ({
-    ...job,
-    ...scoreJob(job, profile, keywords, feedback),
-  }));
+  const dedupedIncomingJobs = finalFixMergeIncomingJobsByKey(incomingJobs);
+
+  const scoredIncoming = dedupedIncomingJobs.map((job) =>
+    finalFixPrepareAndScoreJob(job, profile, keywords, feedback),
+  );
 
   const usableScoredIncoming = scoredIncoming.filter(isUsableJob);
   const dedupedUsableScoredIncoming =
@@ -1114,7 +1675,7 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
   const jobsForThisRun = limitDebugJobs(dedupedUsableScoredIncoming);
 
   await writeScanAuditFile({
-    incomingJobs,
+    incomingJobs: dedupedIncomingJobs,
     scoredIncoming,
     jobsForThisRun,
     mergeWithExisting: resume,
@@ -1123,17 +1684,22 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
   printDebugJobPreview(jobsForThisRun, "DEBUG FINAL JOB PREVIEW");
 
   const latestExistingJobs = await readJson(JOBS_FILE, existingJobs);
-  const existingById = new Map(latestExistingJobs.map((job) => [job.id, job]));
-  const newJobs = [];
+  const latestExistingKeys = new Set(latestExistingJobs.map(getMergeKey).filter(Boolean));
 
-  for (const job of jobsForThisRun) {
-    if (!existingById.has(job.id)) {
-      newJobs.push(job);
-      existingById.set(job.id, job);
-    }
-  }
+  const dedupedScoredIncoming = dedupeJobsByFingerprint(scoredIncoming);
 
-  const merged = sortJobs(uniqueById([...existingById.values()]));
+  const updatedJobs = dedupedScoredIncoming.filter((job) =>
+    existingKeysAtRunStart.has(getMergeKey(job)),
+  );
+
+  const newJobs = jobsForThisRun.filter(
+    (job) => !existingKeysAtRunStart.has(getMergeKey(job)),
+  );
+
+  const merged = mergeJobsUpdatingExisting(latestExistingJobs, [
+    ...updatedJobs,
+    ...newJobs,
+  ]);
 
   if (DEBUG_DRY_RUN) {
     console.log(
@@ -1143,8 +1709,9 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
     await writeJson(JOBS_FILE, merged);
   }
 
-  console.log(`Scanned: ${jobsForThisRun.length} / ${incomingJobs.length}`);
+  console.log(`Scanned: ${jobsForThisRun.length} / ${dedupedIncomingJobs.length} unique / ${incomingJobs.length} raw`);
   console.log(`New jobs: ${newJobs.length}`);
+  console.log(`Updated existing jobs: ${updatedJobs?.length || 0}`);
   console.log(`Total saved: ${merged.length}`);
 
   printScanSummary({
@@ -1156,7 +1723,7 @@ export async function findJobs({ useMock = false, resume = false, batchSize = 0 
   const progress = await getScanProgress();
 
   return {
-    scanned: incomingJobs.length,
+    scanned: dedupedIncomingJobs.length,
     newJobs: newJobs.length,
     totalJobs: merged.length,
     jobs: merged,

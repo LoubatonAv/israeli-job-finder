@@ -638,10 +638,215 @@ function createJobFromCard($, card, searchUrl, query) {
     title,
     link,
     company: extractCompany(cardText, title),
-    location: extractLocation(cardText),
+    location: cleanLocationValue(extractLocation(cardText), cardText),
     description: cardText,
     sourceQuery: query,
   };
+}
+
+
+const ALLJOBS_FETCH_DETAILS =
+  String(process.env.ALLJOBS_FETCH_DETAILS || "true").toLowerCase() !== "false";
+
+const ALLJOBS_DETAIL_LIMIT =
+  Number.parseInt(process.env.ALLJOBS_DETAIL_LIMIT || "80", 10) || 80;
+
+const ALLJOBS_DETAIL_DELAY_MS =
+  Number.parseInt(process.env.ALLJOBS_DETAIL_DELAY_MS || "100", 10) || 100;
+
+function escapeRegex(value = "") {
+  return String(value).replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\async function fetchHtml(url) {");
+}
+
+function extractLabeledValue(text = "", labels = []) {
+  const value = normalizeSpace(text);
+
+  for (const label of labels) {
+    const escaped = escapeRegex(label);
+    const match = value.match(new RegExp(`${escaped}\\s*:?\\s*([^·]{2,140})`, "i"));
+
+    if (match?.[1]) {
+      return normalizeSpace(match[1]);
+    }
+  }
+
+  return "";
+}
+
+function pickBetterDescription(existing = "", incoming = "") {
+  const current = normalizeSpace(existing);
+  const next = normalizeSpace(incoming);
+
+  if (!next) return current;
+  if (next.length < current.length) return current;
+  if (isLikelyPageNoise(next) && !isLikelyPageNoise(current)) return current;
+
+  return next.slice(0, 3500);
+}
+
+function hasStrongTitleSignal(value = "") {
+  const text = normalizeSpace(value).toLowerCase();
+
+  if (!text || isBadTitle(text)) return false;
+
+  return (
+    text.includes("qa") ||
+    text.includes("tester") ||
+    text.includes("testing") ||
+    text.includes("בודק") ||
+    text.includes("בודקת") ||
+    text.includes("בדיקות") ||
+    text.includes("בדיק") ||
+    text.includes("אוטומציה") ||
+    text.includes("automation")
+  );
+}
+
+function cleanAllJobsDetailTitle(value = "") {
+  const text = normalizeSpace(value)
+    .replace(/^»\s*·\s*/g, "")
+    .replace(/\s*»\s*/g, " · ")
+    .trim();
+
+  const parts = text
+    .split("·")
+    .map((part) => normalizeSpace(part))
+    .filter(Boolean)
+    .filter((part) => !["תוכנה", "ניהול ביניים", "דרושים", "AllJobs"].includes(part));
+
+  const strongPart = parts.find((part) => hasStrongTitleSignal(part));
+
+  return strongPart || text;
+}
+
+function isUsefulCompanyCandidate(value = "") {
+  const company = cleanCompanyName(value);
+
+  if (!company || company === "חברה חסויה") return false;
+  if (company.length < 2 || company.length > 60) return false;
+
+  if (
+    /דרוש|דרושה|דרושים|דרוש\/ה|בודק|בודקת|בדיקות|qa|tester|ניסיון|נסיון|במסגרת|התפקיד|תיאור|דרישות|משרה|מגייסת|מוביל|מובילה/i.test(company)
+  ) {
+    return false;
+  }
+
+  if (hasTargetRoleSignal(company)) return false;
+
+  return true;
+}
+
+function extractAllJobsDetailFields(html = "", fallback = {}) {
+  const $ = cheerio.load(html);
+
+  $("script, style, noscript, svg").remove();
+
+  const bodyText = cleanText($("body").text());
+  const description = pickBetterDescription(fallback.description, bodyText);
+
+  const titleSources = [
+    $("h1").first().text(),
+    $("h2").first().text(),
+    $("title").first().text(),
+  ]
+    .map(cleanText)
+    .map(cleanAllJobsDetailTitle)
+    .filter((value) => value && hasStrongTitleSignal(value));
+
+  const fallbackTitle = normalizeSpace(fallback.title || "");
+  const title = hasStrongTitleSignal(fallbackTitle)
+    ? fallbackTitle
+    : titleSources[0] || fallbackTitle;
+
+  const rawCompany =
+    extractLabeledValue(bodyText, ["שם החברה", "חברה", "Company"]) ||
+    fallback.company ||
+    "";
+
+  const detailCompany = cleanCompanyName(rawCompany);
+  const fallbackCompany = cleanCompanyName(fallback.company || "");
+
+  const company = isUsefulCompanyCandidate(detailCompany)
+    ? detailCompany
+    : fallbackCompany || "חברה חסויה";
+
+  const rawLocation =
+    extractLabeledValue(bodyText, [
+      "מיקום המשרה",
+      "מיקום",
+      "אזור",
+      "איזור",
+      "Location",
+    ]) ||
+    fallback.location ||
+    "";
+
+  return {
+    title,
+    company,
+    location: cleanLocationValue(rawLocation, description),
+    description,
+  };
+}
+
+
+function shouldFetchAllJobsDetails(item = {}) {
+  if (!ALLJOBS_FETCH_DETAILS) return false;
+
+  const link = String(item.link || "");
+  const location = String(item.location || "");
+  const company = String(item.company || "");
+  const description = String(item.description || "");
+
+  if (!/[?&]JobID=\d+/i.test(link)) return false;
+
+  return (
+    !location ||
+    location === "Israel" ||
+    location.length > 35 ||
+    /סוג\s*משרה|היקף\s*משרה|דרישות/i.test(location) ||
+    company === "חברה חסויה" ||
+    description.length < 350
+  );
+}
+
+async function enrichAllJobsDetails(items = []) {
+  const enriched = [];
+  let fetched = 0;
+
+  for (const item of items) {
+    if (!shouldFetchAllJobsDetails(item) || fetched >= ALLJOBS_DETAIL_LIMIT) {
+      enriched.push(item);
+      continue;
+    }
+
+    try {
+      fetched += 1;
+
+      const html = await fetchHtml(item.link);
+      const details = extractAllJobsDetailFields(html, item);
+
+      enriched.push({
+        ...item,
+        ...details,
+        location: cleanLocationValue(details.location || item.location, details.description || item.description),
+        allJobsDetailsFetched: true,
+      });
+
+      if (ALLJOBS_DETAIL_DELAY_MS > 0) {
+        await sleep(ALLJOBS_DETAIL_DELAY_MS);
+      }
+    } catch (error) {
+      console.warn(`AllJobs detail enrich failed for ${item.link}: ${error.message}`);
+      enriched.push(item);
+    }
+  }
+
+  if (fetched > 0) {
+    console.log(`AllJobs detail pages fetched: ${fetched}`);
+  }
+
+  return enriched;
 }
 
 async function fetchHtml(url) {
@@ -851,6 +1056,23 @@ export async function searchAllJobs({ query }) {
 
   console.log("AllJobs matched job links:", unique.length);
 
-  return unique.slice(0, ALLJOBS_MAX_RESULTS);
+  const enrichedUnique = await enrichAllJobsDetails(
+    unique.slice(0, ALLJOBS_MAX_RESULTS),
+  );
+
+  if (enrichedUnique.length) {
+    console.log(
+      "AllJobs enriched sample:",
+      enrichedUnique.slice(0, 5).map((item) => ({
+        title: item.title,
+        company: item.company,
+        location: item.location,
+        link: item.link,
+        detailsFetched: item.allJobsDetailsFetched || false,
+      })),
+    );
+  }
+
+  return enrichedUnique;
 }
 

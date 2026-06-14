@@ -1,4 +1,7 @@
-import * as cheerio from "cheerio";
+﻿import { chromium } from "playwright";
+
+const MAX_RESULTS = Number(process.env.JOBMASTER_MAX_RESULTS || 40);
+const GOTO_TIMEOUT_MS = Number(process.env.JOBMASTER_GOTO_TIMEOUT_MS || 30000);
 
 function buildJobMasterSearchUrl(query) {
   const params = new URLSearchParams({ q: query });
@@ -6,72 +9,226 @@ function buildJobMasterSearchUrl(query) {
 }
 
 function cleanText(text = "") {
-  return text
+  return String(text || "")
+    .replace(/\u00a0/g, " ")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
+    .filter((line) => !/שלח|קורות חיים|הגש מועמדות|פתח משרה|פרטים נוספים|דרושים|JobMaster|ג'וב מאסטר|נגישות/i.test(line))
     .join(" · ")
+    .replace(/לפני\s+\d+\s+(?:שעות|ימים|דקות)/g, "")
+    .replace(/לפני\s+יום/g, "")
     .replace(/\s{2,}/g, " ")
+    .replace(/(?:\s*·\s*){2,}/g, " · ")
     .trim();
 }
 
-export async function searchJobMaster({ query }) {
-  const url = buildJobMasterSearchUrl(query);
-  console.log(`JobMaster searching: ${url}`);
+function absoluteUrl(href = "") {
+  if (!href) return "";
+  if (href.startsWith("http")) return href;
+  return `https://www.jobmaster.co.il${href.startsWith("/") ? "" : "/"}${href}`;
+}
 
-  const response = await fetch(url, {
-    headers: {
-      "user-agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-      "accept-language": "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7",
-    },
-  });
+function extractJobId(link = "") {
+  return (
+    String(link).match(/(?:job|jobs)[^\d]*(\d{4,})/i)?.[1] ||
+    String(link).match(/[?&](?:jobid|id|job)=([^&#]+)/i)?.[1] ||
+    link
+  );
+}
 
-  if (!response.ok) {
-    throw new Error(`JobMaster HTTP ${response.status}`);
+function extractLocation(text = "") {
+  const value = String(text || "");
+
+  const good = value.match(
+    /חיפה|קריות|קריית\s*אתא|יקנעם|יוקנעם|נשר|טירת\s*כרמל|עכו|נהריה|כרמיאל|צפון|אזור\s*הצפון|איזור\s*הצפון|חדרה|היברידי|מרחוק|remote/i,
+  );
+
+  if (good) return good[0];
+
+  const bad = value.match(
+    /תל\s*אביב|ירושלים|רמת\s*גן|פתח\s*תקווה|הרצליה|רעננה|כפר\s*סבא|חולון|לוד|באר\s*שבע|אשדוד|אשקלון|ראשון\s*לציון|מרכז|דרום/i,
+  );
+
+  return bad?.[0] || "";
+}
+
+function chooseTitle({ anchorText = "", cardText = "", href = "" }) {
+  const candidates = [
+    anchorText,
+    ...String(cardText || "").split("·"),
+  ]
+    .map((part) => cleanText(part))
+    .map((part) => part.replace(/^דרושים\s+/i, "").trim())
+    .filter(Boolean)
+    .filter((part) => part.length >= 4 && part.length <= 120)
+    .filter((part) => !/שלח|קורות חיים|הגש מועמדות|פרטים נוספים|JobMaster|ג'וב מאסטר|נגישות|סוכן חכם|חיפוש/i.test(part));
+
+  const useful = candidates.find((part) =>
+    /qa|בודק|בודקת|בדיקות|תוכנה|system|tester|automation|מידע|מערכות|data|back office|בק אופיס|מסמכים/i.test(part),
+  );
+
+  return useful || candidates[0] || "";
+}
+
+async function gotoWithFallback(page, url) {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: GOTO_TIMEOUT_MS });
+  } catch (error) {
+    console.warn(`JobMaster domcontentloaded timeout, continuing: ${error.message}`);
   }
 
-  const html = await response.text();
-  const $ = cheerio.load(html);
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 8000 });
+  } catch {
+    // JobMaster can keep connections open.
+  }
 
-  const results = [];
-  const seen = new Set();
+  await page.waitForTimeout(1500);
 
-  $("a[href]").each((_, el) => {
-    const href = $(el).attr("href") || "";
-    const text = cleanText($(el).text());
+  try {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => window.scrollTo(0, 0));
+  } catch {
+    // ignore
+  }
+}
 
-    if (!href.includes("/jobs/") && !href.includes("/job/")) return;
-    if (href.includes("?q=")) return;
-    if (!text || text.length < 4 || text.length > 120) return;
-
-    const link = href.startsWith("http")
-      ? href
-      : `https://www.jobmaster.co.il${href.startsWith("/") ? "" : "/"}${href}`;
-
-    if (seen.has(link)) return;
-    seen.add(link);
-
-    const card = $(el).closest("article, li, div");
-    const description = cleanText(card.text());
-
-    const fullText = cleanText(card.text());
-
-    const locationMatch = fullText.match(/חיפה|קריות|יקנעם|נשר|טירת כרמל|עכו/i);
-
-    const negativeLocationMatch = fullText.match(
-      /תל אביב|בני ברק|פתח תקווה|רעננה|כפר סבא|הרצליה|ירושלים|ראשון לציון/i,
-    );
-
-    results.push({
-      title: text,
-      link,
-      description: fullText,
-      location: locationMatch?.[0] || negativeLocationMatch?.[0] || "",
-    });
+export async function searchJobMaster({ query }) {
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      "--disable-dev-shm-usage",
+      "--no-sandbox",
+    ],
   });
 
-  console.log("JobMaster matched job links:", results.length);
+  try {
+    const page = await browser.newPage({
+      locale: "he-IL",
+      viewport: { width: 1366, height: 900 },
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+    });
 
-  return results.slice(0, 30);
+    const url = buildJobMasterSearchUrl(query);
+    console.log(`JobMaster searching: ${url}`);
+
+    await gotoWithFallback(page, url);
+
+    const results = await page.evaluate(() => {
+      function clean(text = "") {
+        return String(text || "")
+          .replace(/\u00a0/g, " ")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .filter((line) => !/שלח|קורות חיים|הגש מועמדות|פתח משרה|פרטים נוספים|דרושים|JobMaster|ג'וב מאסטר|נגישות/i.test(line))
+          .join(" · ")
+          .replace(/לפני\s+\d+\s+(?:שעות|ימים|דקות)/g, "")
+          .replace(/לפני\s+יום/g, "")
+          .replace(/\s{2,}/g, " ")
+          .replace(/(?:\s*·\s*){2,}/g, " · ")
+          .trim();
+      }
+
+      function pickCard(anchor) {
+        return (
+          anchor.closest("[data-testid*='job']") ||
+          anchor.closest("[class*='job']") ||
+          anchor.closest("[class*='Job']") ||
+          anchor.closest("[class*='card']") ||
+          anchor.closest("[class*='Card']") ||
+          anchor.closest("article") ||
+          anchor.closest("li") ||
+          anchor.closest("section") ||
+          anchor.closest("tr") ||
+          anchor.closest("div")
+        );
+      }
+
+      function pickTitle(anchor, cardText) {
+        const card = pickCard(anchor);
+        const heading =
+          anchor.querySelector("h1,h2,h3,h4")?.innerText ||
+          card?.querySelector("h1,h2,h3,h4")?.innerText ||
+          "";
+
+        const candidates = [
+          heading,
+          anchor.innerText,
+          anchor.getAttribute("title"),
+          anchor.getAttribute("aria-label"),
+          ...String(cardText || "").split("·"),
+        ]
+          .map((part) => clean(part))
+          .map((part) => part.replace(/^דרושים\s+/i, "").trim())
+          .filter(Boolean)
+          .filter((part) => part.length >= 4 && part.length <= 120)
+          .filter((part) => !/שלח|קורות חיים|הגש מועמדות|פרטים נוספים|JobMaster|ג'וב מאסטר|נגישות|סוכן חכם|חיפוש/i.test(part));
+
+        const useful = candidates.find((part) =>
+          /qa|בודק|בודקת|בדיקות|תוכנה|system|tester|automation|מידע|מערכות|data|back office|בק אופיס|מסמכים/i.test(part),
+        );
+
+        return useful || candidates[0] || "";
+      }
+
+      return [...document.querySelectorAll("a[href]")]
+        .map((a) => {
+          const rawHref = a.getAttribute("href") || "";
+          const href = a.href || "";
+
+          const looksLikeJob =
+            /\/jobs?\/|jobid=|jobid\/|\/job\//i.test(rawHref) ||
+            /\/jobs?\/|jobid=|jobid\/|\/job\//i.test(href);
+
+          if (!looksLikeJob) return null;
+          if (/\/jobs\/?\?q=|search|javascript:|mailto:/i.test(rawHref)) return null;
+
+          const card = pickCard(a);
+          const description = clean(card?.innerText || a.innerText || "");
+          const title = pickTitle(a, description);
+
+          if (!title || !href) return null;
+
+          return {
+            title,
+            link: href,
+            description,
+          };
+        })
+        .filter(Boolean);
+    });
+
+    const unique = [];
+    const seen = new Set();
+
+    for (const item of results) {
+      const link = absoluteUrl(item.link);
+      const key = extractJobId(link);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const description = cleanText(item.description);
+      unique.push({
+        title: chooseTitle({ anchorText: item.title, cardText: description, href: link }),
+        company: "",
+        location: extractLocation(description),
+        link,
+        description,
+      });
+    }
+
+    const finalResults = unique.filter((item) => item.title && item.link).slice(0, MAX_RESULTS);
+
+    console.log("JobMaster matched job links:", finalResults.length);
+    console.log(finalResults.map((item) => `${item.title} -> ${item.link}`).slice(0, 10));
+
+    return finalResults;
+  } finally {
+    await browser.close();
+  }
 }

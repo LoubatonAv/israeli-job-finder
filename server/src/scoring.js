@@ -1,6 +1,7 @@
 import { normalizeText } from "./utils.js";
 import { getLearningAdjustment } from "./learning.js";
 import { getRoleProfileById } from "./roleProfiles.js";
+import { applyDecisionGates } from "./decisionGates.js";
 
 const HARD_EXCLUDE_REGEX = [
   /(?:^|\s)שירות(?:\s+לקוחות)?(?:\s|$|–|-)/i,
@@ -71,11 +72,23 @@ function findMatches(text, words = []) {
 }
 
 function hasExperience(text, minYears) {
-  const matches = [
-    ...normalizeText(text).matchAll(/(\d+)\+?\s*(years|yrs|שנים)/g),
+  const normalized = normalizeText(text);
+
+  const patterns = [
+    /(\d+)\+?\s*(?:years?|yrs?|שנים|שנות|שנה)/gi,
+    /(?:ניסיון|נסיון|experience).{0,50}?(\d+)\+?/gi,
+    /(\d+)\+?.{0,25}?(?:ניסיון|נסיון|experience)/gi,
   ];
 
-  return matches.some((match) => Number(match[1]) >= minYears);
+  for (const pattern of patterns) {
+    const matches = [...normalized.matchAll(pattern)];
+
+    if (matches.some((match) => Number(match[1]) >= minYears)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function addUnique(items, value) {
@@ -85,7 +98,136 @@ function addUnique(items, value) {
 }
 
 function hasAdminOrNonSoftwareNoise(text = "") {
-  return /פקיד|פקידת|בק\s*אופיס|back\s*office|לוגיסטיקה|מעבדה|פארמה|אצוות|מחסן|אדמיניסטרציה/i.test(text);
+  const value = String(text || "");
+
+  const exactAdminRole =
+    /(?:^|[^\p{L}\p{N}])פקיד(?:ה|ת)?(?:$|[^\p{L}\p{N}])/iu.test(value) ||
+    /(?:^|[^\p{L}\p{N}])בק\s*אופיס(?:$|[^\p{L}\p{N}])/iu.test(value) ||
+    /\bback\s*office\b/i.test(value);
+
+  const otherNoise =
+    /לוגיסטיקה|מעבדה|פארמה|אצוות|מחסן|אדמיניסטרציה/i.test(value);
+
+  return exactAdminRole || otherNoise;
+}
+
+
+function isSpecificLearningMessage(message = "") {
+  return /ניסיון|נסיון|מיקום|טלפוני|טלפון|שירות|לקוחות|מכירות|משמרות|שבת|חגים|בכיר|ניהולי|מרכז|תל אביב|ירושלים|שרון|שפלה/i.test(
+    String(message || ""),
+  );
+}
+
+function cleanLearningForJob(job = {}, learning = {}) {
+  const roleFamily = String(job.roleFamily || "");
+  const reasons = Array.isArray(learning.reasons) ? learning.reasons : [];
+  const warnings = Array.isArray(learning.warnings) ? learning.warnings : [];
+
+  if (roleFamily !== "qa") {
+    return {
+      adjustment: Number(learning.adjustment || 0),
+      reasons,
+      warnings,
+    };
+  }
+
+  const usefulReasons = reasons.filter((message) =>
+    isSpecificLearningMessage(message),
+  );
+
+  const usefulWarnings = warnings.filter((message) =>
+    isSpecificLearningMessage(message),
+  );
+
+  const hasOnlyGenericLearning =
+    (reasons.length || warnings.length) &&
+    usefulReasons.length === 0 &&
+    usefulWarnings.length === 0;
+
+  return {
+    // Generic "similar QA was rejected" should not crush every QA result.
+    adjustment: hasOnlyGenericLearning
+      ? Math.max(Number(learning.adjustment || 0), -6)
+      : Number(learning.adjustment || 0),
+    reasons: usefulReasons,
+    warnings: usefulWarnings,
+  };
+}
+
+
+function hasExplicitSeniorSignal(job = {}, text = "") {
+  const title = String(job.title || "");
+
+  return (
+    /ראש\s*צוות|ר["״]?צ|team\s*lead|\blead\b|manager|cto|מנהל(?:\/ת)?|בכיר|בכירה/i.test(title) ||
+    /(?:4|5|6|7|8|9|10)\+?\s*(?:שנים|שנות|שנה|years?|yrs?)/i.test(text) ||
+    /(?:ניסיון|נסיון|experience).{0,50}(?:4|5|6|7|8|9|10)\+?/i.test(text)
+  );
+}
+
+function isActualClerkMatch(text = "") {
+  return /(?:^|[^\p{L}\p{N}])פקיד(?:ה|ת)?(?:$|[^\p{L}\p{N}])/iu.test(
+    String(text || ""),
+  );
+}
+
+function filterExcludedMatchesForJob(job = {}, text = "", matches = []) {
+  const roleFamily = String(job.roleFamily || "");
+  const title = String(job.title || "");
+
+  return matches.filter((match) => {
+    const value = String(match || "").trim();
+
+    // Do not match פקיד inside תפקיד.
+    if (/פקיד/.test(value)) {
+      return isActualClerkMatch(text);
+    }
+
+    // QA jobs often mention פיתוח as context; don't warn unless this is really a dev title.
+    if (
+      roleFamily === "qa" &&
+      value === "פיתוח" &&
+      !/מפתח|מפתחת|developer|software\s*engineer|frontend|backend|full\s*stack/i.test(title)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+
+function hasSoftwareQaSignalText(text = "") {
+  const value = String(text || "");
+
+  return /תוכנה|בדיקות\s*תוכנה|בודק\s*[\/.]?\s*(?:\/ת|ת)?\s*תוכנה|בודק\/ת\s*תוכנה|בודקי\s*תוכנה|בודקות\s*תוכנה|software|automation|automated|selenium|playwright|cypress|api|web|mobile|crm|salesforce|sap|erp|מערכות\s*מידע|system\s*qa|software\s*qa|software\s*tester|qa\s*tester|test\s*engineer/i.test(value);
+}
+
+function hasManufacturingQualitySignal(text = "") {
+  const value = String(text || "");
+
+  return /הבטחת\s*איכות|בקרת\s*איכות|אבטחת\s*איכות|מפעל|ייצור|יצורי|אספטי|סטרילי|סטרילית|מכשור\s*רפואי|qa\s*\/\s*ra|ra\s*\/\s*qa|\bra\b|gmp|iso\s*13485|פארמה|תרופות|מעבדה|מזון|quality\s*assurance|quality\s*control|regulatory|רגולציה/i.test(value);
+}
+
+function isManufacturingQualityQa(job = {}) {
+  const text = [
+    job.title,
+    job.company,
+    job.location,
+    job.description,
+    job.via,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const hasQaSignal =
+    job.roleFamily === "qa" ||
+    /(?:^|[^a-z])qa(?:$|[^a-z])/i.test(text) ||
+    /הבטחת\s*איכות|בקרת\s*איכות|אבטחת\s*איכות/i.test(text);
+
+  if (!hasQaSignal) return false;
+
+  return hasManufacturingQualitySignal(text) && !hasSoftwareQaSignalText(text);
 }
 
 export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
@@ -95,6 +237,16 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
 
   const reasons = [];
   const warnings = [];
+
+  if (isManufacturingQualityQa(job)) {
+    return {
+      fitScore: 0,
+      recommendation: "skip",
+      status: "skipped",
+      reasons: [],
+      warnings: ["נפסל: נראה QA איכות/ייצור/רגולציה ולא בדיקות תוכנה."],
+    };
+  }
 
   const hardRegexMatches = findRegexMatches(text, HARD_EXCLUDE_REGEX);
 
@@ -173,7 +325,7 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     addUnique(reasons, "מתאים לג׳וניור / ללא ניסיון.");
   }
 
-  if (job.seniority === "senior_or_lead" || job.hasSeniorSignal) {
+  if (hasExplicitSeniorSignal(job, text)) {
     score -= 35;
     warnings.push("נראה בכיר/ניהולי מדי.");
   }
@@ -216,7 +368,11 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     );
   }
 
-  const excludedMatches = findMatches(text, keywords.exclude || []);
+  const excludedMatches = filterExcludedMatchesForJob(
+    job,
+    text,
+    findMatches(text, keywords.exclude || []),
+  );
   if (excludedMatches.length) {
     const unique = [...new Set(excludedMatches)].slice(0, 5);
     score -= Math.min(35, unique.length * 8);
@@ -228,7 +384,10 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     warnings.push("לא נמצא קישור ישיר להגשה.");
   }
 
-  const learning = getLearningAdjustment(job, feedback);
+  const learning = cleanLearningForJob(
+    job,
+    getLearningAdjustment(job, feedback),
+  );
   score += learning.adjustment;
   reasons.push(...learning.reasons);
   warnings.push(...learning.warnings);
@@ -273,12 +432,25 @@ export function scoreJob(job, profile = {}, keywords = {}, feedback = []) {
     recommendation = "review";
   }
 
-  return {
+  const rawScoreResult = {
     fitScore: score,
     recommendation,
     reasons: reasons.length
       ? [...new Set(reasons)].slice(0, 8)
       : ["התאמה כללית, אבל חסרים סימנים חזקים."],
     warnings: [...new Set(warnings)].slice(0, 8),
+  };
+
+  const gatedResult = applyDecisionGates({
+    ...job,
+    ...rawScoreResult,
+  });
+
+  return {
+    fitScore: gatedResult.fitScore,
+    recommendation: gatedResult.recommendation,
+    reasons: gatedResult.reasons || rawScoreResult.reasons,
+    warnings: gatedResult.warnings || rawScoreResult.warnings,
+    decisionGates: gatedResult.decisionGates,
   };
 }
