@@ -23,61 +23,265 @@ const emptyForm = {
   negativePatterns: "",
 };
 
-const frontendPreset = {
-  id: "frontend_junior",
-  name: "Front End Junior",
-  roleFamily: "frontend",
-  roleType: "frontend_junior",
-  mainListMinScore: 70,
-  scoreBonus: 26,
-  queries: [
-    "frontend junior חיפה",
-    "front end junior חיפה",
-    "react junior חיפה",
-    "vue junior חיפה",
-    "מפתח פרונט חיפה",
-    "מפתח react חיפה",
-    "frontend junior יקנעם",
-    "react junior יקנעם",
-    "frontend junior קריות",
-    "מפתח פרונט צפון",
-    "junior frontend remote",
-  ].join(", "),
-  positivePatterns: [
-    "frontend",
-    "front end",
-    "front-end",
-    "react",
-    "vue",
-    "javascript",
-    "typescript",
-    "מפתח פרונט",
-    "מפתח frontend",
-    "מפתח react",
-    "junior",
-    "ג׳וניור",
-    "ללא ניסיון",
-  ].join(", "),
-  negativePatterns: [
-    "senior",
-    "lead",
-    "full stack",
-    "fullstack",
-    "backend",
-    "back end",
-    "software engineer",
-    "ראש צוות",
-    "בכיר",
-    "מנהל",
-    "3 שנים",
-    "4 שנים",
-    "5 שנים",
-    "תל אביב",
-    "רמת גן",
-    "פתח תקווה",
-    "מרכז",
-  ].join(", "),
-};
+const rolePresets = [
+  {
+    id: "qa_manual_junior",
+    name: "QA ידני ג׳וניור",
+    roleFamily: "qa",
+    roleType: "qa_manual_junior",
+    mainListMinScore: 58,
+    scoreBonus: 30,
+    queries: [
+      "בודק תוכנה junior חיפה",
+      "בודק תוכנה ללא ניסיון חיפה",
+      "QA junior חיפה",
+      "Manual QA חיפה",
+      "בודק תוכנה קריות",
+      "בודק תוכנה יקנעם",
+      "QA ללא ניסיון צפון",
+    ].join(", "),
+    positivePatterns: [
+      "בודק תוכנה",
+      "בדיקות תוכנה",
+      "manual qa",
+      "qa manual",
+      "qa junior",
+      "tester",
+      "testing",
+      "ללא ניסיון",
+      "ג׳וניור",
+      "junior",
+    ].join(", "),
+    negativePatterns: [
+      "senior",
+      "lead",
+      "ראש צוות",
+      "מנהל",
+      "מנוסה",
+      "3 שנים",
+      "4 שנים",
+      "5 שנים",
+      "developer",
+      "full stack",
+      "frontend",
+      "backend",
+      "software engineer",
+      "sales",
+      "טלפוני",
+      "מוקד",
+      "שירות לקוחות",
+      "מרכז",
+      "תל אביב",
+      "פתח תקווה",
+      "רמת גן",
+      "הרצליה",
+      "כפר סבא",
+    ].join(", "),
+  },
+  {
+    id: "data_analyst_junior",
+    name: "Data Analyst ג׳וניור",
+    roleFamily: "analysis",
+    roleType: "data_analyst_junior",
+    mainListMinScore: 60,
+    scoreBonus: 26,
+    queries: [
+      "data analyst junior חיפה",
+      "data analyst ללא ניסיון חיפה",
+      "אנליסט נתונים חיפה",
+      "אנליסט דאטה חיפה",
+      "BI analyst junior חיפה",
+      "data analyst קריות",
+      "data analyst יקנעם",
+      "אנליסט נתונים צפון",
+    ].join(", "),
+    positivePatterns: [
+      "data analyst",
+      "אנליסט נתונים",
+      "אנליסט דאטה",
+      "bi analyst",
+      "business intelligence",
+      "sql",
+      "excel",
+      "power bi",
+      "tableau",
+      "דוחות",
+      "ניתוח נתונים",
+      "junior",
+      "ג׳וניור",
+      "ללא ניסיון",
+    ].join(", "),
+    negativePatterns: [
+      "data engineer",
+      "data scientist",
+      "machine learning",
+      "אלגוריתמים",
+      "developer",
+      "software developer",
+      "software engineer",
+      "full stack",
+      "frontend",
+      "backend",
+      "senior",
+      "lead",
+      "ראש צוות",
+      "מנהל",
+      "3 שנים",
+      "4 שנים",
+      "5 שנים",
+      "sales",
+      "טלפוני",
+      "מוקד",
+      "שירות לקוחות",
+      "מרכז",
+      "תל אביב",
+      "פתח תקווה",
+      "רמת גן",
+      "הרצליה",
+    ].join(", "),
+  },
+  {
+    id: "back_office_data_entry",
+    name: "Back Office / Data Entry",
+    roleFamily: "operations",
+    roleType: "back_office_data_entry",
+    mainListMinScore: 55,
+    scoreBonus: 22,
+    queries: [
+      "back office חיפה",
+      "data entry חיפה",
+      "הזנת נתונים חיפה",
+      "בק אופיס חיפה",
+      "back office קריות",
+      "data entry קריות",
+      "הזנת נתונים צפון",
+    ].join(", "),
+    positivePatterns: [
+      "back office",
+      "בק אופיס",
+      "data entry",
+      "הזנת נתונים",
+      "קליטת נתונים",
+      "תפעול",
+      "אדמיניסטרציה",
+      "excel",
+      "office",
+    ].join(", "),
+    negativePatterns: [
+      "מכירות",
+      "sales",
+      "טלפוני",
+      "מוקד",
+      "שירות לקוחות",
+      "פרונטלי",
+      "משמרות",
+      "ערב",
+      "סופי שבוע",
+      "שישי",
+      "senior",
+      "מנהל",
+      "ראש צוות",
+      "מרכז",
+      "תל אביב",
+      "פתח תקווה",
+      "רמת גן",
+    ].join(", "),
+  },
+  {
+    id: "document_control",
+    name: "בקרת מסמכים",
+    roleFamily: "information",
+    roleType: "document_control",
+    mainListMinScore: 55,
+    scoreBonus: 24,
+    queries: [
+      "בקרת מסמכים חיפה",
+      "document control חיפה",
+      "document controller חיפה",
+      "איש בקרת מסמכים חיפה",
+      "בקרת מסמכים קריות",
+      "בקרת מסמכים יקנעם",
+      "document control צפון",
+    ].join(", "),
+    positivePatterns: [
+      "בקרת מסמכים",
+      "document control",
+      "document controller",
+      "מסמכים",
+      "תיעוד",
+      "נהלים",
+      "איכות",
+      "office",
+      "excel",
+    ].join(", "),
+    negativePatterns: [
+      "מהנדס איכות",
+      "qa מפעל",
+      "gmp",
+      "רגולציה בכירה",
+      "senior",
+      "lead",
+      "ראש צוות",
+      "מנהל",
+      "3 שנים",
+      "4 שנים",
+      "5 שנים",
+      "טלפוני",
+      "מוקד",
+      "שירות לקוחות",
+      "מרכז",
+      "תל אביב",
+      "פתח תקווה",
+      "רמת גן",
+    ].join(", "),
+  },
+  {
+    id: "quiet_app_support",
+    name: "תמיכה אפליקטיבית שקטה",
+    roleFamily: "information_systems",
+    roleType: "app_support_quiet",
+    mainListMinScore: 58,
+    scoreBonus: 24,
+    queries: [
+      "תמיכה אפליקטיבית חיפה",
+      "application support חיפה",
+      "תומך אפליקטיבי חיפה",
+      "מערכות מידע חיפה",
+      "תמיכה אפליקטיבית קריות",
+      "application support צפון",
+    ].join(", "),
+    positivePatterns: [
+      "תמיכה אפליקטיבית",
+      "application support",
+      "מערכות מידע",
+      "sql",
+      "crm",
+      "erp",
+      "בדיקות",
+      "תחקור תקלות",
+      "back office",
+    ].join(", "),
+    negativePatterns: [
+      "מוקד",
+      "טלפוני",
+      "שירות לקוחות",
+      "help desk טלפוני",
+      "משמרות",
+      "24/7",
+      "סופי שבוע",
+      "לילות",
+      "on call",
+      "senior",
+      "lead",
+      "ראש צוות",
+      "מנהל",
+      "מרכז",
+      "תל אביב",
+      "פתח תקווה",
+      "רמת גן",
+    ].join(", "),
+  },
+];
 
 function listToText(value) {
   if (Array.isArray(value)) return value.join(", ");
@@ -196,9 +400,9 @@ export default function RoleManager({ onMessage, onError }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function useFrontendPreset() {
-    setEditingId(frontendPreset.id);
-    setForm(frontendPreset);
+  function useRolePreset(preset) {
+    setEditingId(preset.id);
+    setForm(preset);
   }
 
   async function saveRole(event) {
@@ -359,13 +563,18 @@ export default function RoleManager({ onMessage, onError }) {
               כדאי לתת שאילתות מדויקות ומילות חסימה כדי לא להציף את הרשימה.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={useFrontendPreset}
-            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100"
-          >
-            <Plus size={15} /> Front End
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+            {rolePresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => useRolePreset(preset)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 ring-1 ring-violet-100 hover:bg-violet-100"
+              >
+                <Plus size={15} /> {preset.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-5 grid gap-4">
