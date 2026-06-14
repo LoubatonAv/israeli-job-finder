@@ -19,6 +19,7 @@ import { createFeedbackEntry } from "./learning.js";
 import { createJobId, uniqueById } from "./utils.js";
 import { enrichJob } from "./enrichJob.js";
 import { scoreJob } from "./scoring.js";
+import { applyDecisionGates } from "./decisionGates.js";
 import {
   getGmailAuthUrl,
   getGmailConnectionStatus,
@@ -1644,10 +1645,10 @@ async function importGmailJobsIntoMainList({
 
   for (const candidate of candidates) {
     const enriched = enrichJob(candidate);
-    const scored = {
+    const scored = applyDecisionGates({
       ...enriched,
       ...scoreJob(enriched, profile, keywords, feedback),
-    };
+    });
 
     const learningRejectedSimilarJob = (scored.warnings || []).some((warning) =>
       /בעבר פסלת|דומות נדחו/i.test(String(warning || "")),

@@ -1,4 +1,4 @@
-﻿import { chromium } from "playwright";
+import { chromium } from "playwright";
 
 const MAX_RESULTS = Number(process.env.DRUSHIM_MAX_RESULTS || 40);
 const GOTO_TIMEOUT_MS = Number(process.env.DRUSHIM_GOTO_TIMEOUT_MS || 30000);
@@ -37,32 +37,22 @@ function extractJobId(link = "") {
 
 function extractLocation(text = "") {
   const value = String(text || "");
-
-  const good = value.match(
-    /חיפה|קריות|קריית\s*אתא|יקנעם|יוקנעם|נשר|טירת\s*כרמל|עכו|נהריה|כרמיאל|צפון|אזור\s*הצפון|איזור\s*הצפון|היברידי|מרחוק|remote/i,
-  );
-
+  const good = value.match(/חיפה|קריות|קריית\s*אתא|יקנעם|יוקנעם|נשר|טירת\s*כרמל|עכו|נהריה|כרמיאל|צפון|אזור\s*הצפון|איזור\s*הצפון|חדרה|היברידי|מרחוק|remote/i);
   if (good) return good[0];
-
-  const bad = value.match(
-    /תל\s*אביב|ירושלים|רמת\s*גן|פתח\s*תקווה|הרצליה|רעננה|כפר\s*סבא|חולון|לוד|באר\s*שבע|אשדוד|אשקלון|ראשון\s*לציון|מרכז|דרום/i,
-  );
-
+  const bad = value.match(/תל\s*אביב|ירושלים|רמת\s*גן|פתח\s*תקווה|הרצליה|רעננה|כפר\s*סבא|חולון|לוד|באר\s*שבע|אשדוד|אשקלון|ראשון\s*לציון|מרכז|דרום/i);
   return bad?.[0] || "";
 }
 
 function chooseTitle({ anchorText = "", cardText = "" }) {
-  const candidates = [
-    anchorText,
-    ...String(cardText || "").split("·"),
-  ]
+  const candidates = [anchorText, ...String(cardText || "").split("·")]
     .map((part) => cleanText(part))
     .map((part) => part.replace(/^דרושים\s+/i, "").trim())
     .filter(Boolean)
-    .filter((part) => part.length >= 4 && part.length <= 110)
+    .filter((part) => part.length >= 4 && part.length <= 120)
     .filter((part) => !/פתח משרה|שלח\/י|צפייה|לפני|משרה מלאה|מספר משרות|דרושים IL|נגישות/i.test(part));
 
-  return candidates[0] || "";
+  const useful = candidates.find((part) => /qa|בודק|בודקת|בדיקות|תוכנה|tester|test|automation|אוטומציה|מערכות|מידע|data|מסמכים|V&V/i.test(part));
+  return useful || candidates[0] || "";
 }
 
 async function gotoWithFallback(page, url) {
@@ -75,7 +65,7 @@ async function gotoWithFallback(page, url) {
   try {
     await page.waitForLoadState("networkidle", { timeout: 8000 });
   } catch {
-    // Drushim sometimes keeps network connections open. That is fine.
+    // Drushim sometimes keeps connections open. That is fine.
   }
 
   await page.waitForTimeout(1500);
@@ -109,7 +99,6 @@ export async function searchDrushim({ query }) {
 
     const url = buildDrushimSearchUrl(query);
     console.log(`Drushim searching: ${url}`);
-
     await gotoWithFallback(page, url);
 
     console.log("Drushim page title:", await page.title());
@@ -149,9 +138,10 @@ export async function searchDrushim({ query }) {
       }
 
       function pickTitle(anchor, cardText) {
+        const card = pickCard(anchor);
         const heading =
           anchor.querySelector("h1,h2,h3,h4")?.innerText ||
-          anchor.closest("article,li,section,div")?.querySelector("h1,h2,h3,h4")?.innerText ||
+          card?.querySelector("h1,h2,h3,h4")?.innerText ||
           "";
 
         const candidates = [
@@ -164,31 +154,24 @@ export async function searchDrushim({ query }) {
           .map((part) => clean(part))
           .map((part) => part.replace(/^דרושים\s+/i, "").trim())
           .filter(Boolean)
-          .filter((part) => part.length >= 4 && part.length <= 110)
+          .filter((part) => part.length >= 4 && part.length <= 120)
           .filter((part) => !/פתח משרה|שלח\/י|צפייה|לפני|משרה מלאה|מספר משרות|דרושים IL|נגישות/i.test(part));
 
-        return candidates[0] || "";
+        const useful = candidates.find((part) => /qa|בודק|בודקת|בדיקות|תוכנה|tester|test|automation|אוטומציה|מערכות|מידע|data|מסמכים|V&V/i.test(part));
+        return useful || candidates[0] || "";
       }
 
       return [...document.querySelectorAll("a[href]")]
         .map((a) => {
           const rawHref = a.getAttribute("href") || "";
           const href = a.href || "";
-
           if (!rawHref.includes("/job/") && !href.includes("/job/")) return null;
           if (rawHref.includes("#") || href.includes("#")) return null;
-
           const card = pickCard(a);
           const description = clean(card?.innerText || a.innerText || "");
           const title = pickTitle(a, description);
-
           if (!title || !href) return null;
-
-          return {
-            title,
-            link: href,
-            description,
-          };
+          return { title, link: href, description };
         })
         .filter(Boolean);
     });
@@ -201,7 +184,6 @@ export async function searchDrushim({ query }) {
       const key = extractJobId(link);
       if (seen.has(key)) continue;
       seen.add(key);
-
       const description = cleanText(item.description);
       unique.push({
         title: chooseTitle({ anchorText: item.title, cardText: description }),
@@ -213,10 +195,8 @@ export async function searchDrushim({ query }) {
     }
 
     const finalResults = unique.filter((item) => item.title && item.link).slice(0, MAX_RESULTS);
-
     console.log("Drushim matched job links:", finalResults.length);
     console.log(finalResults.map((item) => `${item.title} -> ${item.link}`).slice(0, 10));
-
     return finalResults;
   } finally {
     await browser.close();

@@ -3,14 +3,14 @@
   "stopRequested": false,
   "stopped": false,
   "completed": true,
-  "nextStepIndex": 1,
-  "completedSteps": 1,
-  "totalSteps": 1,
+  "nextStepIndex": 2,
+  "completedSteps": 2,
+  "totalSteps": 2,
   "currentQuery": "",
   "currentProvider": "",
-  "lastSavedAt": "2026-06-14T12:22:37.342Z",
-  "startedAt": "2026-06-14T12:22:23.457Z",
-  "finishedAt": "2026-06-14T12:22:37.344Z",
+  "lastSavedAt": "2026-06-14T16:50:25.063Z",
+  "startedAt": "2026-06-14T16:49:57.216Z",
+  "finishedAt": "2026-06-14T16:50:25.065Z",
   "message": "הסריקה הסתיימה",
-  "updatedAt": "2026-06-14T12:22:37.344Z"
+  "updatedAt": "2026-06-14T16:50:25.065Z"
 }
