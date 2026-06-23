@@ -109,6 +109,32 @@ function hasAdminOrNonSoftwareNoise(job = {}) {
   );
 }
 
+function isRecognizedQuietRole(job = {}) {
+  const text = [
+    job.title,
+    job.description,
+    job.roleFamily,
+    job.roleType,
+    job.roleProfileId,
+    job.roleProfileName,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const hasQuietRoleProfile =
+    Boolean(job.roleProfileId) &&
+    ["information", "operations", "analysis", "information_systems", "data"].includes(
+      String(job.roleFamily || ""),
+    );
+
+  const hasClearQuietRoleEvidence =
+    /back\s*office|בק\s*אופיס|data\s*entry|הזנת\s*נתונים|קליטת\s*נתונים|document\s*control(?:ler)?|doc\s*control|בקרת\s*מסמכים|מידען|information\s*specialist|application\s*support|תמיכה\s*אפליקטיבית/i.test(
+      text,
+    );
+
+  return hasQuietRoleProfile || hasClearQuietRoleEvidence;
+}
+
 function normalizeFingerprintText(value = "") {
   return String(value)
     .toLowerCase()
@@ -282,7 +308,8 @@ function isUsableJob(job = {}) {
   if (
     roleFamily !== "qa" &&
     roleFamily !== "automation" &&
-    hasAdminOrNonSoftwareNoise(job)
+    hasAdminOrNonSoftwareNoise(job) &&
+    !isRecognizedQuietRole(job)
   ) {
     return false;
   }

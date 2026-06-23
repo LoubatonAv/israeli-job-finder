@@ -111,6 +111,31 @@ function hasAdminOrNonSoftwareNoise(text = "") {
   return exactAdminRole || otherNoise;
 }
 
+function isRecognizedQuietRole(job = {}, text = "") {
+  const roleFamily = String(job.roleFamily || "");
+  const roleText = [
+    text,
+    job.roleType,
+    job.roleProfileId,
+    job.roleProfileName,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const hasQuietRoleProfile =
+    Boolean(job.roleProfileId) &&
+    ["information", "operations", "analysis", "information_systems", "data"].includes(
+      roleFamily,
+    );
+
+  const hasClearQuietRoleEvidence =
+    /back\s*office|בק\s*אופיס|data\s*entry|הזנת\s*נתונים|קליטת\s*נתונים|document\s*control(?:ler)?|doc\s*control|בקרת\s*מסמכים|מידען|information\s*specialist|application\s*support|תמיכה\s*אפליקטיבית/i.test(
+      roleText,
+    );
+
+  return hasQuietRoleProfile || hasClearQuietRoleEvidence;
+}
+
 
 function isSpecificLearningMessage(message = "") {
   return /ניסיון|נסיון|מיקום|טלפוני|טלפון|שירות|לקוחות|מכירות|משמרות|שבת|חגים|בכיר|ניהולי|מרכז|תל אביב|ירושלים|שרון|שפלה/i.test(
@@ -412,7 +437,11 @@ const text = [job.title, job.company, job.location, job.description, job.via]
     warnings.push("המיקום לא זוהה בוודאות.");
   }
 
-  if (job.roleFamily !== "qa" && hasAdminOrNonSoftwareNoise(text)) {
+  if (
+    job.roleFamily !== "qa" &&
+    hasAdminOrNonSoftwareNoise(text) &&
+    !isRecognizedQuietRole(job, text)
+  ) {
     score -= 28;
     warnings.push("נראה כמו אדמיניסטרציה / לוגיסטיקה / מעבדה ולא תפקיד תוכנה ברור.");
   }
