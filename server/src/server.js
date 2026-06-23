@@ -31,6 +31,7 @@ import {
   getImportedGmailJobs,
   importGmailJobEmails,
 } from "./gmailImport.js";
+import { persistGmailImport } from "./gmailImportPersistence.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -1807,12 +1808,17 @@ async function importGmailJobsIntoMainList({
     at: new Date().toISOString(),
   };
 
-  await writeGmailAgentState({
-    ...state,
-    lastImportAt: resultSummary.at,
-    processedMessageIds: [...processedMessageIds],
-    processedJobIds: [...processedJobIds],
-    lastResult: resultSummary,
+  await persistGmailImport({
+    jobsFile: JOBS_FILE,
+    jobs: merged,
+    agentState: {
+      ...state,
+      lastImportAt: resultSummary.at,
+      processedMessageIds: [...processedMessageIds],
+      processedJobIds: [...processedJobIds],
+      lastResult: resultSummary,
+    },
+    writeAgentState: writeGmailAgentState,
   });
 
   return {
