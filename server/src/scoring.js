@@ -4,7 +4,7 @@ import { getRoleProfileById } from "./roleProfiles.js";
 import { applyDecisionGates } from "./decisionGates.js";
 
 const HARD_EXCLUDE_REGEX = [
-  /(?:^|\s)שירות(?:\s+לקוחות)?(?:\s|$|–|-)/i,
+  /שירות\s*לקוחות|customer\s*(?:service|support)|support\s*representative|phone\s*support|call\s*center/i,
   /נציג(?:\/ת|י|ים|ות|י\/ות)?/i,
   /מוקד|טלפוני|שיחות/i,
   /(?:מכירות|איש\\s*מכירות|אשת\\s*מכירות|\\bsales\\b|sales\\s*(?:rep|representative|manager)|business\\s*development|account\\s*executive)/i,

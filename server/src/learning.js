@@ -51,12 +51,13 @@ export const REJECTION_REASONS = {
     penalty: -18,
     patterns: [
       /שירות\s*לקוחות/i,
-      /תמיכה/i,
-      /support/i,
       /help\s*desk/i,
       /customer\s*service/i,
-      /technical\s*support/i,
-      /טכנאי/i,
+      /customer\s*support/i,
+      /phone\s*support/i,
+      /support\s*representative/i,
+      /נציג(?:\/ת)?\s*תמיכה/i,
+      /תמיכה\s*טלפונית/i,
     ],
   },
   sales: {
@@ -176,6 +177,17 @@ function hasPatternMatch(text, patterns = []) {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+function shouldApplyCustomerServiceLearningPenalty(text = '') {
+  const hasApplicationSupportEvidence =
+    /application\s*support|תמיכה\s*אפליקטיבית/i.test(text);
+
+  if (!hasApplicationSupportEvidence) return true;
+
+  return /שירות\s*לקוחות|customer\s*(?:service|support)|phone\s*support|call\s*center|help\s*desk|support\s*representative|נציג(?:\/ת)?\s*תמיכה|תמיכה\s*טלפונית|מוקד|טלפוני|שיחות/i.test(
+    text,
+  );
+}
+
 function isGenericLocation(location = '') {
   const normalized = normalizeText(location);
   return !normalized || ['israel', 'ישראל', 'remote', 'hybrid', 'היברידי', 'מרחוק'].includes(normalized);
@@ -248,7 +260,15 @@ function getReasonAdjustment(job, feedbackItem) {
   const config = REJECTION_REASONS[reason];
   const text = getJobText(job);
 
-  if (config.patterns?.length && hasPatternMatch(text, config.patterns)) {
+  const canApplyPatternPenalty =
+    reason !== 'customer_service' ||
+    shouldApplyCustomerServiceLearningPenalty(text);
+
+  if (
+    canApplyPatternPenalty &&
+    config.patterns?.length &&
+    hasPatternMatch(text, config.patterns)
+  ) {
     return {
       adjustment: config.penalty,
       warning: `למידה: בעבר פסלת משרות עם מאפיין דומה — ${config.label}.`,
