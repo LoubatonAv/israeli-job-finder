@@ -52,7 +52,8 @@ function isAppliedJob(job = {}) {
 
 function isWaitingJob(job = {}) {
   return (
-    !isClosedStatus(job.status) && String(job.recommendation || "") !== "review"
+    String(job.status || "found") === "found" &&
+    !["review", "skip"].includes(String(job.recommendation || ""))
   );
 }
 
