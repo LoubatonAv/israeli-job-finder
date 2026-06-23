@@ -231,8 +231,36 @@ export function extractRole(job = {}) {
 
   if (
     hasAny(text, [
+      /application\s*support/i,
+      /תמיכה\s*אפליקטיבית/i,
+    ])
+  ) {
+    result.roleFamily = "information_systems";
+    result.roleType = "application_support";
+    result.isRelevantRole = true;
+    result.roleConfidence = "medium";
+    result.roleSignals.push("application_support");
+  }
+
+  if (
+    hasAny(text, [
+      /data\s*entry/i,
+      /הזנת\s*נתונים/i,
+      /קליטת\s*נתונים/i,
+    ])
+  ) {
+    result.roleFamily = "operations";
+    result.roleType = "data_entry";
+    result.isRelevantRole = true;
+    result.roleConfidence = "medium";
+    result.roleSignals.push("data_entry");
+  }
+
+  if (
+    hasAny(text, [
       /מידען/i,
       /בקרת\s*מסמכים/i,
+      /document\s*control/i,
       /document\s*controller/i,
       /doc\s*control/i,
       /בק\s*אופיס/i,
