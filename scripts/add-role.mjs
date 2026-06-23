@@ -7,84 +7,7 @@ const rootDir = process.cwd();
 const roleProfilesPath = path.join(rootDir, 'data', 'roleProfiles.json');
 const keywordsPath = path.join(rootDir, 'data', 'keywords.json');
 
-const PRESETS = {
-  'frontend-junior': {
-    id: 'frontend_junior',
-    name: 'Front End Junior',
-    enabled: true,
-    roleFamily: 'frontend',
-    roleType: 'frontend_junior',
-    mainListMinScore: 70,
-    scoreBonus: 26,
-    queries: [
-      'frontend junior חיפה',
-      'front end junior חיפה',
-      'front-end junior חיפה',
-      'react junior חיפה',
-      'vue junior חיפה',
-      'javascript junior חיפה',
-      'typescript junior חיפה',
-      'מפתח פרונט חיפה',
-      'מפתח frontend חיפה',
-      'מפתח react חיפה',
-      'מפתח vue חיפה',
-      'frontend junior יקנעם',
-      'react junior יקנעם',
-      'frontend junior קריות',
-      'מפתח פרונט צפון',
-      'junior frontend remote',
-      'react junior remote',
-    ],
-    positivePatterns: [
-      'frontend',
-      'front end',
-      'front-end',
-      'react',
-      'vue',
-      'javascript',
-      'typescript',
-      'ui developer',
-      'מפתח פרונט',
-      'מפתח frontend',
-      'מפתח react',
-      'מפתח vue',
-      'ג׳וניור',
-      "ג'וניור",
-      'junior',
-      'ללא ניסיון',
-      'ללא נסיון',
-    ],
-    negativePatterns: [
-      'senior',
-      'lead',
-      'principal',
-      'architect',
-      'manager',
-      'team lead',
-      'full stack',
-      'fullstack',
-      'backend',
-      'back end',
-      'java',
-      '.net',
-      'c#',
-      'node',
-      'ראש צוות',
-      'בכיר',
-      'מנהל',
-      '5 שנים',
-      '4 שנים',
-      '3 שנים',
-      'תל אביב',
-      'רמת גן',
-      'פתח תקווה',
-      'הרצליה',
-      'רעננה',
-      'כפר סבא',
-      'מרכז',
-    ],
-  },
-};
+const PRESETS = {};
 
 function parseArgs(argv = []) {
   const result = {};
@@ -213,7 +136,7 @@ async function askInteractiveProfile() {
     const id = slugify(idAnswer || idDefault);
 
     const family =
-      (await rl.question('Role family: qa / analysis / information_systems / operations / frontend / custom (default custom): ')).trim() ||
+      (await rl.question('Role family: qa / analysis / information / information_systems / operations / custom (default custom): ')).trim() ||
       'custom';
 
     const type =
@@ -269,14 +192,12 @@ Add a role to Israeli Job Finder
 
 Usage:
   node ./scripts/add-role.mjs
-  node ./scripts/add-role.mjs --preset frontend-junior
-  node ./scripts/add-role.mjs --preset frontend-junior --min-score 75
 
 Available presets:
-  ${Object.keys(PRESETS).join(', ')}
+  ${Object.keys(PRESETS).join(', ') || 'none'}
 
 Manual CLI example:
-  node ./scripts/add-role.mjs --id frontend_junior --name "Front End Junior" --family frontend --type frontend_junior --min-score 70 --queries "frontend junior חיפה, react junior חיפה" --positive "frontend, react, junior" --negative "senior, full stack, backend, תל אביב"
+  node ./scripts/add-role.mjs --id document_control --name "Document Control" --family information --type document_control --min-score 55 --queries "document control חיפה, בקרת מסמכים קריות" --positive "document control, בקרת מסמכים" --negative "senior, טלפוני, מרכז"
 
 Notes:
   --queries, --positive and --negative are comma-separated.

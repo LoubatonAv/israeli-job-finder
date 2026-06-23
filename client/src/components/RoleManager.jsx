@@ -579,11 +579,11 @@ export default function RoleManager({ onMessage, onError }) {
 
         <div className="mt-5 grid gap-4">
           <Field label="שם תצוגה">
-            <Input value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder="לדוגמה: Front End Junior" />
+            <Input value={form.name} onChange={(event) => updateForm("name", event.target.value)} placeholder="לדוגמה: בקרת מסמכים" />
           </Field>
 
           <Field label="מזהה פנימי" hint="באנגלית/תווים פשוטים. אם תשאיר ריק, המערכת תיצור מזהה מהשם.">
-            <Input value={form.id} onChange={(event) => updateForm("id", event.target.value)} placeholder="frontend_junior" dir="ltr" />
+            <Input value={form.id} onChange={(event) => updateForm("id", event.target.value)} placeholder="document_control" dir="ltr" />
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -604,7 +604,7 @@ export default function RoleManager({ onMessage, onError }) {
             </Field>
 
             <Field label="סוג פנימי">
-              <Input value={form.roleType} onChange={(event) => updateForm("roleType", event.target.value)} placeholder="frontend_junior" dir="ltr" />
+              <Input value={form.roleType} onChange={(event) => updateForm("roleType", event.target.value)} placeholder="document_control" dir="ltr" />
             </Field>
           </div>
 
@@ -618,7 +618,7 @@ export default function RoleManager({ onMessage, onError }) {
             </Field>
           </div>
 
-          <Field label="שאילתות חיפוש" hint="מופרדות בפסיקים. לדוגמה: react junior חיפה, מפתח פרונט קריות">
+          <Field label="שאילתות חיפוש" hint="מופרדות בפסיקים. לדוגמה: document control חיפה, בקרת מסמכים קריות">
             <TextArea value={form.queries} onChange={(event) => updateForm("queries", event.target.value)} />
           </Field>
 

@@ -508,7 +508,7 @@ async function buildGmailAgentSummary() {
       {
         name: "GotFriends",
         domains: ["gotfriends.co.il"],
-        note: "השמה בהייטק. טוב במיוחד אם תגדיר Junior/QA/Front End מדויק.",
+        note: "השמה בהייטק. טוב במיוחד אם תגדיר Junior QA / Data / Back Office מדויק.",
       },
       {
         name: "Nisha",

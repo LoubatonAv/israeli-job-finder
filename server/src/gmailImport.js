@@ -183,13 +183,6 @@ const DEFAULT_TARGET_TERMS = [
   "מידען",
   "מיישם מערכות",
   "מטמיע מערכות",
-  "Front End Junior",
-  "Frontend Junior",
-  "React Junior",
-  "Vue Junior",
-  "מפתח פרונט",
-  "מפתח React",
-  "מפתח Vue",
 ];
 
 const TOO_BROAD_GMAIL_TERMS = new Set([
