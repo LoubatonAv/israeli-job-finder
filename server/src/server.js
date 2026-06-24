@@ -1777,7 +1777,6 @@ async function importGmailJobsIntoMainList({
     return true;
   });
 
-  const before = Array.isArray(currentJobs) ? currentJobs.length : 0;
   const merged = uniqueById([
     ...jobsWithoutReplacedDigestSummaries,
     ...scoredCandidates,
@@ -1788,18 +1787,26 @@ async function importGmailJobsIntoMainList({
     processedMessageIds.add(mail.gmailMessageId),
   );
 
+  const replacedDigestSummaries = Math.max(
+    0,
+    (Array.isArray(currentJobs) ? currentJobs.length : 0) -
+      jobsWithoutReplacedDigestSummaries.length,
+  );
+  const remainingReviewKeys = new Set(
+    jobsWithoutReplacedDigestSummaries.map(getReviewKey).filter(Boolean),
+  );
+  const addedToJobs = scoredCandidates.filter(
+    (job) => !remainingReviewKeys.has(getReviewKey(job)),
+  ).length;
+
   const resultSummary = {
     scanned: importResult.scanned || 0,
     imported: importResult.total || 0,
     processedNow: mailsToProcess.length,
     alreadyProcessed,
     candidateJobs: candidates.length,
-    addedToJobs: Math.max(0, merged.length - before),
-    replacedDigestSummaries: Math.max(
-      0,
-      (Array.isArray(currentJobs) ? currentJobs.length : 0) -
-        jobsWithoutReplacedDigestSummaries.length,
-    ),
+    addedToJobs,
+    replacedDigestSummaries,
     reviewCandidates: scoredCandidates.filter(
       (job) => job.recommendation === "review",
     ).length,
