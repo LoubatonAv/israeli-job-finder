@@ -1008,6 +1008,7 @@ function finalFixNormalizeScoredJobAfterFlow(job = {}) {
 
   if (finalFixHasBlockedLocation(next)) {
     next.recommendation = "skip";
+    next.status = "skipped";
     return next;
   }
 
