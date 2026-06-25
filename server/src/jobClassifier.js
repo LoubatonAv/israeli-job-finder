@@ -164,14 +164,21 @@ function hasThreePlusExperience(job = {}) {
 
 function hasBadLocation(job = {}) {
   const locationKey = String(job.locationKey || "");
-  const locationText = [job.location, job.locationKey, job.title, job.description]
+  const locationText = [job.location, job.locationKey]
+    .filter(Boolean)
+    .join(" ");
+  const fullText = [job.location, job.locationKey, job.title, job.description]
     .filter(Boolean)
     .join(" ");
 
-  return BAD_LOCATION_KEYS.has(locationKey) || hasAny(locationText, [
+  return BAD_LOCATION_KEYS.has(locationKey) ||
+    hasAny(locationText, [
+      /(?:^|[\s_-])(?:מרכז|center|centre|merkaz)(?:$|[\s_-])/i,
+    ]) ||
+    hasAny(fullText, [
     /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום/i,
-    /בני\s*ברק|כפר\s*סבא|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|מרכז|השרון|שרון|השפלה|שפלה/i,
-    /tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|bnei\s*brak|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel|center|centre|merkaz/i,
+    /בני\s*ברק|כפר\s*סבא|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|השרון|שרון|השפלה|שפלה/i,
+    /tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|bnei\s*brak|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel/i,
   ]);
 }
 

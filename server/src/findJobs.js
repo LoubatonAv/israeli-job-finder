@@ -267,7 +267,11 @@ function isUsableJob(job = {}) {
   }
 
   const blockedLocationText =
-    /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|מרכז|השרון|שרון|השפלה|שפלה|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel|center|centre|merkaz/i;
+    /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|השרון|שרון|השפלה|שפלה|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel/i;
+  const broadBlockedLocationText = /(?:^|[\s_-])(?:מרכז|center|centre|merkaz)(?:$|[\s_-])/i;
+  const locationOnlyText = [locationText, locationKey.replaceAll("_", " ")]
+    .filter(Boolean)
+    .join(" ");
 
   const blockedLocationKeys = new Set([
     "or_yehuda",
@@ -292,6 +296,7 @@ function isUsableJob(job = {}) {
     blockedLocationKeys.has(locationKey) ||
     blockedLocationText.test(locationText) ||
     blockedLocationText.test(locationKey.replaceAll("_", " ")) ||
+    broadBlockedLocationText.test(locationOnlyText) ||
     blockedLocationText.test([job.title, job.description].filter(Boolean).join(" ")) ||
     blockedLocationText.test([job.title, job.description].filter(Boolean).join(" ")) ||
     blockedLocationText.test([job.title, job.description].filter(Boolean).join(" "))
@@ -837,7 +842,8 @@ const FINAL_FIX_GOOD_LOCATION_KEYS = new Set([
 ]);
 
 const FINAL_FIX_BAD_LOCATION_TEXT =
-  /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|מרכז|השרון|שרון|השפלה|שפלה|בני\s*ברק|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|bnei\s*brak|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel|center|centre|merkaz/i;
+  /אור\s*יהודה|קיסריה|לוד|ראשון\s*לציון|חולון|רמת\s*גן|תל\s*אביב|ירושלים|באר\s*שבע|שדרות|אשדוד|אשקלון|נתיבות|דרום|פתח\s*תקווה|ראש\s*העין|מרכז\s*הארץ|איזור\s*המרכז|אזור\s*המרכז|השרון|שרון|השפלה|שפלה|בני\s*ברק|tel\s*aviv|jerusalem|sderot|ashdod|ashkelon|beer\s*sheva|beersheba|ramat\s*gan|petah\s*tikva|raanana|kfar\s*saba|bnei\s*brak|hod\s*hasharon|hasharon|sharon|shefela|shfela|south|southern|central\s*israel/i;
+const FINAL_FIX_BROAD_BAD_LOCATION_TEXT = /(?:^|[\s_-])(?:מרכז|center|centre|merkaz)(?:$|[\s_-])/i;
 
 function finalFixExtractAllJobsJobId(job = {}) {
   const url = String(job.url || job.link || "");
@@ -875,8 +881,17 @@ function finalFixHasBlockedLocation(job = {}) {
   ]
     .filter(Boolean)
     .join(" ");
+  const locationText = [
+    job.location,
+    String(job.locationKey || "").replaceAll("_", " "),
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  return FINAL_FIX_BAD_LOCATION_TEXT.test(text);
+  return (
+    FINAL_FIX_BAD_LOCATION_TEXT.test(text) ||
+    FINAL_FIX_BROAD_BAD_LOCATION_TEXT.test(locationText)
+  );
 }
 
 function finalFixIsConfidentialCompany(value = "") {
