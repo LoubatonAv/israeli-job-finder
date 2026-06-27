@@ -1,16 +1,8 @@
 {
   "running": false,
-  "stopRequested": false,
-  "stopped": false,
-  "completed": true,
-  "nextStepIndex": 2,
-  "completedSteps": 2,
-  "totalSteps": 2,
-  "currentQuery": "",
-  "currentProvider": "",
-  "lastSavedAt": "2026-06-14T16:50:25.063Z",
-  "startedAt": "2026-06-14T16:49:57.216Z",
-  "finishedAt": "2026-06-14T16:50:25.065Z",
-  "message": "הסריקה הסתיימה",
-  "updatedAt": "2026-06-14T16:50:25.065Z"
+  "startedAt": null,
+  "finishedAt": null,
+  "message": "reset",
+  "current": 0,
+  "total": 0
 }
