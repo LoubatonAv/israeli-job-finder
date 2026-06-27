@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { apiGet, apiPost } from "../lib/api.js";
 
 
 const REJECTION_REASONS = [
@@ -74,25 +75,6 @@ function formatDate(value) {
   }).format(date);
 }
 
-async function fetchJson(url, options) {
-  const response = await fetch(url, options);
-  const text = await response.text();
-
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = { error: text || "שגיאה לא מזוהה" };
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.error || `שגיאה ${response.status}`);
-  }
-
-  return data;
-}
-
 export default function GmailAgentPanel() {
   const [jobs, setJobs] = useState([]);
   const [gmailStatus, setGmailStatus] = useState(null);
@@ -110,8 +92,8 @@ export default function GmailAgentPanel() {
 
     try {
       const [jobsResult, statusResult] = await Promise.all([
-        fetchJson("/api/jobs"),
-        fetchJson("/api/gmail/status").catch(() => null),
+        apiGet("/api/jobs"),
+        apiGet("/api/gmail/status").catch(() => null),
       ]);
 
       setJobs(asArray(jobsResult).filter(isGmailJob));
@@ -222,15 +204,9 @@ export default function GmailAgentPanel() {
     setImportResult(null);
 
     try {
-      const result = await fetchJson("/api/gmail/import-to-jobs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          days: 14,
-          maxResults: 60,
-        }),
+      const result = await apiPost("/api/gmail/import-to-jobs", {
+        days: 14,
+        maxResults: 60,
       });
 
       setImportResult(result);
@@ -253,19 +229,10 @@ export default function GmailAgentPanel() {
     setMessage("");
 
     try {
-      await fetchJson(
-        `/api/gmail-agent/jobs/${encodeURIComponent(job.id)}/status`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status,
-            reason,
-          }),
-        },
-      );
+      await apiPost(`/api/gmail-agent/jobs/${encodeURIComponent(job.id)}/status`, {
+        status,
+        reason,
+      });
 
       await loadData();
     } catch (error) {
