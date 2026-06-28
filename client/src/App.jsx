@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
   BarChart3,
@@ -189,6 +189,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [scanInterrupted, setScanInterrupted] = useState(false);
+  const [resumeMode, setResumeMode] = useState("quick");
+  const stopRequestedRef = useRef(false);
 
   const [search, setSearch] = useState("");
   const [scoreFilter, setScoreFilter] = useState("all");
@@ -233,15 +236,38 @@ export default function App() {
   }, [loading]);
 
   async function runFinder({ resume = false, mode = "quick" } = {}) {
+    stopRequestedRef.current = false;
     setLoading(true);
     setError("");
+    setScanInterrupted(false);
+    setResumeMode(mode);
     const scanLabel =
       mode === "deep" ? "סריקה עמוקה" : mode === "quick" ? "סריקה מהירה" : "סריקה";
     setMessage(`${scanLabel} התחילה. המערכת מחפשת ומעדכנת את הרשימה.`);
 
     try {
-      const result = await apiPost("/api/jobs/find", { resume, mode });
-      setScanProgress(result.progress || null);
+      let result;
+      let shouldResume = resume;
+
+      do {
+        result = await apiPost("/api/jobs/find", { resume: shouldResume, mode });
+        const progress = result.progress || null;
+        setScanProgress(progress);
+
+        const completedSteps = Number(progress?.completedSteps ?? progress?.nextStepIndex ?? 0);
+        const totalSteps = Number(progress?.totalSteps ?? 0);
+        const canContinue =
+          result.stopped &&
+          !progress?.completed &&
+          totalSteps > 0 &&
+          completedSteps < totalSteps;
+
+        if (mode !== "deep" || !canContinue || stopRequestedRef.current) break;
+
+        shouldResume = true;
+        setMessage("סריקה עמוקה ממשיכה אוטומטית. אפשר לעצור אחרי המקטע הנוכחי.");
+      } while (true);
+
       await loadAll();
       setMessage(
         result.stopped
@@ -250,12 +276,16 @@ export default function App() {
       );
     } catch (err) {
       setError(err.message);
+      setScanInterrupted(true);
+      const progress = await apiGet("/api/jobs/scan-progress").catch(() => null);
+      if (progress) setScanProgress(progress);
     } finally {
       setLoading(false);
     }
   }
 
   async function stopScan() {
+    stopRequestedRef.current = true;
     try {
       const progress = await apiPost("/api/jobs/scan-stop");
       setScanProgress(progress);
@@ -431,7 +461,8 @@ export default function App() {
     ? Math.round((scanStepsDone / scanStepsTotal) * 100)
     : 0;
   const canResumeScan =
-    Boolean(scanProgress?.stopped) &&
+    !loading &&
+    (Boolean(scanProgress?.stopped) || scanInterrupted) &&
     !scanProgress?.completed &&
     scanStepsTotal > 0 &&
     scanStepsDone < scanStepsTotal;
@@ -496,7 +527,7 @@ export default function App() {
               {canResumeScan ? (
                 <button
                   type="button"
-                  onClick={() => runFinder({ resume: true })}
+                  onClick={() => runFinder({ resume: true, mode: resumeMode })}
                   disabled={loading}
                   className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:opacity-60"
                 >
