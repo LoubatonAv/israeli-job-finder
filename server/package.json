@@ -4,12 +4,13 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
+    "dev": "node src/server.js",
     "start": "node src/server.js",
     "find-jobs": "node src/cliFindJobs.js",
     "mock-jobs": "node src/loadMockJobs.js",
     "scan:quick": "node src/cliQuickScan.js",
-    "scan:deep": "node src/cliDeepScan.js"
+    "scan:deep": "node src/cliDeepScan.js",
+    "dev:watch": "node --watch src/server.js"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
